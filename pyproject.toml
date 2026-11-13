@@ -1,0 +1,17 @@
+[project]
+name = "late-delivery"
+version = "0.1.0"
+description = "Causal estimate of what a late delivery costs an e-commerce marketplace (Olist data)."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "pyarrow",
+]
+
+[dependency-groups]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
