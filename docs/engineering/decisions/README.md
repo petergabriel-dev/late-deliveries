@@ -9,3 +9,4 @@
 | ADR-0005 | Active | Headline sample - delivered single-seller orders purchased 2017-01-01 to 2018-08-31 | Building the sample flags or explaining who the estimate covers |
 | ADR-0006 | Active | Money framing - three loss channels priced as platform revenue, assumptions in one file (JC 6) | Translating effects into money or adding any money assumption |
 | ADR-0007 | Active | Pre-registration - FE regression headline; donut RD and matching corroborate (JC 2, 3, 4) | Before running, changing, or interpreting any Phase 2-4 estimate |
+| ADR-0008 | Active | Phase 2 implementation choices - fills ADR-0007 gaps before estimation (JC 2, 3, 4) | Implementing, running, or interpreting any Phase 2 estimate, verdict, or flag |
