@@ -13,12 +13,16 @@ No credentials or downloads: the raw data is committed.
 | Command | What it does |
 |---|---|
 | `uv sync` | Create `.venv` with the exact versions in `uv.lock`, including the `late_delivery` package (editable). |
-| `make all` | Full rebuild: check-data → build → test → diagnostics → naive. About 5 seconds once the matplotlib font cache exists (the first run builds it, about 30 seconds). |
+| `make all` | Full rebuild: check-data → build → test → diagnostics → naive, fe, rd, matching → ladder. About 18 seconds once caches exist (measured 2026-11-13: 18.1 s with `outputs/` deleted, 18.0 s on a repeat run). The first run on a new machine is slower: it builds the matplotlib font cache and compiles pyfixest's numba code. |
 | `make check-data` | Verify `data/raw/*.csv` against `data/raw/SHA256SUMS`. |
 | `make build` | Write `data/processed/orders.parquet` and `outputs/exclusions.json`. |
-| `make test` | Build, then run `pytest` (unit tests on fixtures + data-quality tests on real data). |
+| `make test` | Build, then run `pytest` (unit tests on fixtures, planted-effect estimator tests, data-quality tests on real data). |
 | `make diagnostics` | Write `outputs/diagnostics.{md,json}`, `fig_monthly.png`, `fig_days_late.png`. |
 | `make naive` | Write `outputs/naive.{md,json}` (biased baseline). |
+| `make fe` | Write `outputs/fe.{md,json}`: the 25 pre-registered fixed-effects models, headline included (about 9 s). |
+| `make rd` | Write `outputs/rd.{md,json}` and `fig_rd.png`: donut RD plus sensitivity runs (about 3 s). |
+| `make matching` | Write `outputs/matching.{md,json}`: propensity-score matching and balance table (about 4 s). |
+| `make ladder` | Runs naive, fe, rd and matching, then writes `outputs/ladder.{md,json}` and `fig_ladder.png`: every estimate side by side with the computed verdicts and flags. |
 
 ## Clean-clone rebuild
 
@@ -29,6 +33,18 @@ uv sync && make all
 
 Outputs are deterministic: JSON outputs are byte-identical across runs.
 
+## Dependencies
+
+| Package | Used by |
+|---|---|
+| pandas, numpy, pyarrow | every step |
+| matplotlib | figures |
+| rddensity | Phase 1 density test (`diagnostics.py`) |
+| pyfixest | fixed-effects models (`fe.py`), weighted OLS for matching (`matching.py`) |
+| rdrobust | donut RD (`rd.py`) |
+| statsmodels | propensity logit (`matching.py`) |
+| pytest (dev) | tests |
+
 ## Adding a dependency
 
 `uv add <package>` updates `pyproject.toml` and `uv.lock`; commit both. Add a dependency only in the task that needs it (ADR-0002).
@@ -36,7 +52,7 @@ Outputs are deterministic: JSON outputs are byte-identical across runs.
 ## Recording a decision
 
 1. Copy `docs/engineering/decisions/ADR-template.md` to `ADR-NNNN-<slug>.md` and fill every section, including Options considered and Falsification test. End the title with "(JC n)" if it settles a brief judgment call.
-2. Run `/docs update-index` in Pi (Build mode) to regenerate `decisions/README.md`; never edit the index by hand.
+2. Run `/docs update-index` in Pi (Build mode) to regenerate `decisions/README.md`; never edit the index by hand. From Claude Code, see "Decision index" in `traps.md`.
 3. Check the regenerated index lists the new ADR before committing.
 
 ## Working with Pi Build

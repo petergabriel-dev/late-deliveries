@@ -12,21 +12,31 @@ src/late_delivery/build.py   (make build)
         │  → data/processed/orders.parquet   one row per order, all 99,441
         │  → outputs/exclusions.json         exclusion waterfall
         ▼
-        ├── tests/                     (make test)        unit + data-quality checks
-        ├── src/late_delivery/diagnostics.py  (make diagnostics) → outputs/diagnostics.{md,json}, fig_*.png
-        └── src/late_delivery/naive.py        (make naive)       → outputs/naive.{md,json}
+        ├── tests/                            (make test)        unit + data-quality checks
+        ├── src/late_delivery/diagnostics.py  (make diagnostics) → outputs/diagnostics.{md,json}, fig_monthly.png, fig_days_late.png
+        ├── src/late_delivery/naive.py        (make naive)       → outputs/naive.{md,json}
+        ├── src/late_delivery/fe.py           (make fe)          → outputs/fe.{md,json}
+        ├── src/late_delivery/rd.py           (make rd)          → outputs/rd.{md,json}, fig_rd.png
+        └── src/late_delivery/matching.py     (make matching)    → outputs/matching.{md,json}
+                │  naive.json + fe.json + rd.json + matching.json
+                ▼
+        src/late_delivery/ladder.py           (make ladder)      → outputs/ladder.{md,json}, fig_ladder.png
 ```
 
-`make all` runs check-data → build → test → diagnostics → naive. Everything under `data/processed/` and `outputs/` is generated and gitignored.
+`make all` runs check-data → build → test → diagnostics → naive, fe, rd, matching → ladder. Everything under `data/processed/` and `outputs/` is generated and gitignored.
 
 ## Components
 
 | Module | Responsibility |
 |---|---|
-| `config.py` | Every analysis parameter: paths, purchase window, repeat windows, follow-up cap, low-review threshold, Black Friday date. |
+| `config.py` | Every analysis parameter: paths, purchase window, repeat windows, follow-up cap, low-review threshold, Black Friday date; Phase 2 distance cap, days-late and delivery-days bins, RD cutoff and bandwidths, matching caliper (ADR-0008). |
 | `build.py` | Reads the 8 CSVs the analysis needs; builds treatment, outcome, covariate and sample columns (ADR-0003..0005); writes the parquet and exclusion counts. Pure functions plus `main()`. |
-| `diagnostics.py` | Phase 1 design diagnostics. Never loads `review_score` or `low_review`; the only outcome statistic is the pooled repeat base rate for power (invariant 3). |
+| `diagnostics.py` | Phase 1 design diagnostics. Never loads `review_score` or `low_review`; the only outcome statistic is the pooled repeat base rate for power (invariant 3). Also holds the shared report helpers (`md_table`, `rounded`) and chart palette. |
 | `naive.py` | Biased late vs on-time baseline, allowed only after ADR-0007. |
+| `fe.py` | `analysis_frame()`: the shared analysis-time frame (headline rows, log1p price and freight, distance cap and fill, treatment bins; ADR-0008 §1). The 25 pre-registered fixed-effects models (pyfixest; ADR-0007 §3, ADR-0008 §2), including the headline. |
+| `rd.py` | Donut regression discontinuity at the promised date on `low_review`, plus three sensitivity runs (rdrobust; ADR-0008 §3). Corroborating. |
+| `matching.py` | Propensity-score matching on `low_review`: separation drop (ADR-0009), statsmodels logit, exact match on week, nearest neighbour with caliper, weighted OLS, balance table (ADR-0008 §4). Corroborating. |
+| `ladder.py` | Reads the four estimate JSONs; computes the ADR-0007 §4 verdicts and the falsification flags in code (ADR-0008 §5). ADR-0010 records how they were read. |
 
 ## Order-level table (`orders.parquet`)
 

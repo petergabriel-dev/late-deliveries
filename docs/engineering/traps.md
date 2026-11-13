@@ -17,9 +17,16 @@ Known gotchas in the Olist data and this pipeline. Counts are from the committed
 - **Untranslated categories.** `pc_gamer` and `portateis_cozinha_e_preparadores_de_alimentos` have no English name; the build keeps the Portuguese name. 610 products have no category (`unknown`).
 - **No carrier identifier.** No table records the carrier, so carrier quality is an unobserved confounder.
 - **Thin edges.** 2016 and Sep-Oct 2018 have very few orders; the headline window is 2017-01-01 to 2018-08-31.
+- **Zero freight.** 336 headline orders have freight 0, where `log` is undefined; price and freight enter the models as `log1p` (ADR-0008).
+- **`delivery_days` is fractional.** It is elapsed time from purchase to delivery (0.53 to 209.6 days), so bins are half-open, [lo, hi): "8-14" means 8 <= days < 15.
+- **Groups with no late orders.** Among headline orders with a review, purchase week 2018-08-27 and 7 rare categories have no late orders (211 orders in all). Their dummies perfectly predict "on time", so the propensity logit does not converge with them; matching drops those orders first (ADR-0009).
 
 ## Tooling
 
 - **pandas 3.** Copy-on-write and the default string dtype differ from pandas 2 examples; `Series.dt.weekday` raises a deprecation warning.
-- **Decision index.** `/docs update-index` writes only in Pi Build mode. Check the index's modification time and contents after running it; a run in the wrong mode silently leaves it stale.
+- **Decision index.** `/docs update-index` writes only in Pi Build mode. Check the index's modification time and contents after running it; a run in the wrong mode silently leaves it stale. From Claude Code, importing Pi's `engineering-docs/filesystem.ts` with Node fails (`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`: no type stripping under `node_modules`). Instead, take the source of its functions from `parseFrontmatter` to `updateDecisionIndex`, strip the types with `node:module`'s `stripTypeScriptTypes`, and evaluate it with the constants from `constants.ts`. Its output matches Pi's byte for byte.
+- **Triangular kernel edge.** With cutoff 0.5 and bandwidth h, a day exactly h from the cutoff gets zero weight and rdrobust leaves it out of `N_h`. `rd.py` keeps only days with |days_late - 0.5| < h and checks `N_h == N`.
+- **rdrobust quirks.** With `cluster=`, `vce="hc1"` is switched to `"cr1"` with a warning, so `rd.py` passes `"cr1"` (the same CR1 estimator). It prints a mass-point notice to stdout. The robust CI is centred on the bias-corrected estimate, so the conventional estimate of record can lie outside its own CI. Draw CIs as segments, not `errorbar` (negative lengths raise).
+- **pyfixest.** Collinear regressors silently disappear from `_coefnames`, so `fe.fit` raises if a term of interest is dropped. CIs use t with (clusters - 1) degrees of freedom. The first run on a machine compiles numba code and is slower.
+- **Per-level balance flag.** Matching balance is checked for every category and state level, so a rare level can exceed abs(SMD) 0.1 by chance (none did: max 0.0511).
 - **Filenames with spaces.** The project brief's filename has spaces; use `-z`/`-0` when piping git file lists to `xargs`.
