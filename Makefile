@@ -8,5 +8,5 @@ check-data:
 build: check-data
 	uv run python -m late_delivery.build
 
-test: check-data
+test: build
 	uv run pytest
