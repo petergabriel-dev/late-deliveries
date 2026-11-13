@@ -1,4 +1,7 @@
-.PHONY: check-data build test diagnostics
+.PHONY: all check-data build test diagnostics naive
+
+# One command rebuilds every Phase 1 result from the committed raw CSVs.
+all: test diagnostics naive
 
 # Verify committed raw CSVs are byte-identical to the published dataset.
 check-data:
@@ -14,3 +17,7 @@ test: build
 # Phase 1 design diagnostics (no outcome contrasts) -> outputs/diagnostics.{md,json}, figures
 diagnostics: build
 	uv run python -m late_delivery.diagnostics
+
+# Naive late vs on-time baseline (biased; allowed after ADR-0007) -> outputs/naive.{md,json}
+naive: build
+	uv run python -m late_delivery.naive

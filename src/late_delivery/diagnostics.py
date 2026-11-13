@@ -160,17 +160,17 @@ def plot_running_variable(counts: dict, path) -> None:
     plt.close(fig)
 
 
-def _rounded(obj):
+def rounded(obj):
     if isinstance(obj, float):
         return round(obj, 6)
     if isinstance(obj, dict):
-        return {k: _rounded(v) for k, v in obj.items()}
+        return {k: rounded(v) for k, v in obj.items()}
     if isinstance(obj, list):
-        return [_rounded(v) for v in obj]
+        return [rounded(v) for v in obj]
     return obj
 
 
-def _md_table(rows: list[dict], fmt: dict | None = None) -> str:
+def md_table(rows: list[dict], fmt: dict | None = None) -> str:
     fmt = fmt or {}
     cols = list(rows[0])
     lines = ["| " + " | ".join(cols) + " |", "|" + "---|" * len(cols)]
@@ -190,20 +190,20 @@ def to_markdown(d: dict) -> str:
         "late and on-time orders here (invariant 3); the only outcome statistic is the pooled repeat base "
         "rate used for power.",
         "## 1. Exclusion waterfall",
-        _md_table([{"step": e["reason"], "orders_removed": e["orders"]} for e in ex["excluded"]]
+        md_table([{"step": e["reason"], "orders_removed": e["orders"]} for e in ex["excluded"]]
                   + [{"step": "in headline sample", "orders_removed": ex["in_headline"]}]),
         f"Total orders: {ex['total_orders']:,}. Headline late orders: {d['headline']['late']:,} "
         f"({d['headline']['late_share']:.2%}).",
         "## 2. Monthly volume and late share (headline sample)",
-        _md_table([{"month": k, "orders": v["orders"], "late_share": v["late_share"]} for k, v in m.items()],
+        md_table([{"month": k, "orders": v["orders"], "late_share": v["late_share"]} for k, v in m.items()],
                   {"late_share": pct}),
         "Figure: `fig_monthly.png`.",
         "## 3. Running variable and density test at the promised date",
-        _md_table([{"days_late": k, "orders": v} for k, v in rv.items()]),
+        md_table([{"days_late": k, "orders": v} for k, v in rv.items()]),
         "Figure: `fig_days_late.png`. Test: `rddensity` (Cattaneo, Jansson, Ma), cutoff c = 1 "
         "(day +1 and later = late), mass-point adjustment on. A significant difference means the density "
         "of orders changes at the promised date.",
-        _md_table(d["density_tests"], {"density_left": "{:.5f}", "density_right": "{:.5f}",
+        md_table(d["density_tests"], {"density_left": "{:.5f}", "density_right": "{:.5f}",
                                       "t_jackknife": "{:.2f}", "p_value": "{:.2g}"}),
         "Read with care: the estimates swing with bandwidth and polynomial order (sign and significance "
         "change across rows), because the count of orders falls sharply at days -6/-5, inside the wider "
@@ -211,15 +211,15 @@ def to_markdown(d: dict) -> str:
         f"steadier evidence: orders fall {-d['cutoff_step']['day_0_to_1']:.0%} from day 0 to day +1, versus "
         f"an average fall of {-d['cutoff_step']['mean_step_day_-5_to_0']:.0%} per day over the five days before.",
         "## 4. Survey timing: share of reviews created before delivery, by days late",
-        _md_table(d["survey_timing"], {"created_before_delivery_share": pct}),
+        md_table(d["survey_timing"], {"created_before_delivery_share": pct}),
         "## 5. Covariate balance, late vs on-time (standardized mean difference)",
-        _md_table(d["covariate_balance"], {"mean_late": "{:.3f}", "mean_on_time": "{:.3f}", "smd": "{:+.3f}"}),
+        md_table(d["covariate_balance"], {"mean_late": "{:.3f}", "mean_on_time": "{:.3f}", "smd": "{:+.3f}"}),
         "|SMD| > 0.1 is a common flag for imbalance worth adjusting for.",
         "## 6. Seller support for seller fixed effects",
-        _md_table([d["seller_support"]], {"late_orders_at_those_sellers_share": pct,
+        md_table([d["seller_support"]], {"late_orders_at_those_sellers_share": pct,
                                           "orders_at_those_sellers_share": pct}),
         "## 7. Repeat purchase: minimum detectable effect (naive two-arm, alpha 0.05, power 0.80)",
-        _md_table(d["repeat_mde"], {"pooled_base_rate": "{:.2%}", "mde_pp": "{:.2f}", "mde_relative": pct}),
+        md_table(d["repeat_mde"], {"pooled_base_rate": "{:.2%}", "mde_pp": "{:.2f}", "mde_relative": pct}),
         "MDE in percentage points; relative = MDE / pooled base rate. Controls and matching reduce power "
         "further, so these are best cases.",
     ]) + "\n"
@@ -231,7 +231,7 @@ def main() -> None:
     counts = h["days_late"].value_counts()
     rv_counts = {int(dd): int(counts.get(dd, 0)) for dd in RV_RANGE}
     m = monthly(h)
-    result = _rounded({
+    result = rounded({
         "exclusions": exclusion_counts(t),
         "headline": {"orders": len(h), "late": int(h["late"].sum()), "late_share": float(h["late"].mean())},
         "monthly": {k: {"orders": int(r.orders), "late_share": float(r.late_share)} for k, r in m.iterrows()},
