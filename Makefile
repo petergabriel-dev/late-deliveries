@@ -1,7 +1,7 @@
-.PHONY: all check-data build test diagnostics naive fe rd
+.PHONY: all check-data build test diagnostics naive fe rd matching
 
 # One command rebuilds every result from the committed raw CSVs.
-all: test diagnostics naive fe rd
+all: test diagnostics naive fe rd matching
 
 # Verify committed raw CSVs are byte-identical to the published dataset.
 check-data:
@@ -29,3 +29,7 @@ fe: build
 # Donut RD at the promised date (corroborating; ADR-0008 §3) -> outputs/rd.{md,json}, fig_rd.png
 rd: build
 	uv run python -m late_delivery.rd
+
+# Propensity-score matching (corroborating; ADR-0008 §4, ADR-0009) -> outputs/matching.{md,json}
+matching: build
+	uv run python -m late_delivery.matching

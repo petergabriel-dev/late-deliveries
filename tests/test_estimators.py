@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from late_delivery import config as C
-from late_delivery import rd
+from late_delivery import matching, rd
 from late_delivery.fe import (
     DELIVERY_BIN_COLS, LATE_BIN_COLS, analysis_frame, fit, model_specs, run_grid,
 )
@@ -152,6 +152,75 @@ def test_rd_window_and_donut_guards():
         assert d["days_late"].isin(C.RD_DONUT_DAYS).any() != s["donut"]
     with pytest.raises(ValueError, match="donut"):
         rd.estimate(rd.rd_sample(f, C.RD_BANDWIDTH, donut=False), C.RD_BANDWIDTH, donut=True)
+
+
+def test_nearest_matches_rules():
+    rows = [  # (order_id, week, late, score)
+        ("t1", "A", 1, 0.00), ("t2", "A", 1, 1.00), ("t5", "A", 1, 0.12), ("t6", "A", 1, 0.11),
+        ("c9", "A", 0, 0.10), ("c1", "A", 0, -0.10), ("c5", "A", 0, 0.95), ("c7", "A", 0, 9.00),
+        ("t3", "B", 1, 9.00), ("c2", "B", 0, 0.00),  # nearest same-week control is beyond the caliper
+        ("t4", "C", 1, 0.00),  # no control in week C (c7 in week A must not be used)
+    ]
+    d = pd.DataFrame(rows, columns=["order_id", "purchase_week", "late", "score"])
+    d["low_review"] = 0.0
+    d["seller_id"] = "s"
+    pairs = matching.nearest_matches(d, caliper=0.5)
+    by_id = {d.loc[t, "order_id"]: d.loc[c, "order_id"] for t, c in zip(pairs["treated"], pairs["control"])}
+    # t1 is 0.10 from both c9 and c1: the tie goes to the lowest order_id (c1).
+    assert by_id == {"t1": "c1", "t2": "c5", "t5": "c9", "t6": "c9"}
+    ms = matching.matched_sample(d, pairs, caliper=0.5)
+    weights = dict(zip(ms.loc[ms["late"] == 0, "order_id"], ms.loc[ms["late"] == 0, "w"]))
+    assert weights == {"c1": 1.0, "c9": 2.0, "c5": 1.0}
+    idx = dict(zip(d["order_id"], d.index))
+    cross = pd.DataFrame({"treated": [idx["t3"]], "control": [idx["c7"]], "distance": [0.0], "purchase_week": ["B"]})
+    with pytest.raises(RuntimeError, match="crosses purchase weeks"):
+        matching.matched_sample(d, cross, caliper=0.5)
+    with pytest.raises(RuntimeError, match="caliper"):
+        matching.matched_sample(d, pairs.assign(distance=0.6), caliper=0.5)
+
+
+def test_drop_separated_levels():
+    m = pd.DataFrame({
+        "late": [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+        "main_category": ["a", "a", "rare", "a", "a", "a"],
+        "customer_state": ["SP"] * 6,
+        "purchase_week": ["w1", "w1", "w1", "w2", "w2", "w9"],
+    })
+    kept, dropped = matching.drop_separated(m)
+    assert len(kept) == 4 and kept["late"].sum() == 2
+    assert {(x["variable"], x["level"]) for x in dropped} == {("main_category", "rare"), ("purchase_week", "w9")}
+
+
+def matching_frame(n: int = 40_000, seed: int = 11, effect: float = 0.15) -> pd.DataFrame:
+    """Analysis-frame columns for matching; confounding only through observed controls."""
+    rng = np.random.default_rng(seed)
+    z = rng.normal(0, 1, n)
+    late = (rng.random(n) < 1 / (1 + np.exp(-(-1.2 + 1.0 * z)))).astype(float)
+    p = np.clip(0.15 + 0.05 * z + effect * late, 0.01, 0.99)
+    f = pd.DataFrame({
+        "order_id": [f"o{i:06d}" for i in range(n)],
+        "seller_id": [f"s{s}" for s in rng.integers(0, 500, n)],
+        "purchase_week": [f"w{w:02d}" for w in rng.integers(0, 10, n)],
+        "main_category": rng.choice(["toys", "bed_bath_table", "unknown"], n),
+        "customer_state": rng.choice(["SP", "RJ", "MG"], n),
+        "log_price": rng.normal(4, 1, n), "log_freight": z + rng.normal(0, 0.1, n),
+        "n_items": rng.integers(1, 3, n).astype(float), "distance_km": rng.uniform(10, 2500, n),
+        "distance_missing": (rng.random(n) < 0.01).astype(float), "promised_days": rng.integers(10, 40, n).astype(float),
+        "late": late, "low_review": (rng.random(n) < p).astype(float),
+    })
+    return f
+
+
+def test_matching_recovers_planted_att():
+    f = matching_frame()
+    naive = f.loc[f["late"] == 1, "low_review"].mean() - f.loc[f["late"] == 0, "low_review"].mean()
+    assert abs(naive - 0.15) > 0.02  # confounded through log_freight
+    r = matching.run(f)
+    a, s = r["att"], r["sample"]
+    assert a["ci95_low"] <= 0.15 <= a["ci95_high"] and abs(a["estimate"] - 0.15) < 0.02
+    assert s["orders_dropped_separation"] == 0 and s["matched_late"] + s["unmatched_late"] == s["late_orders"]
+    assert r["balance"]["max_abs_smd_after"] < 0.1
+    assert r == matching.run(f)  # deterministic
 
 
 def test_run_grid_samples():
