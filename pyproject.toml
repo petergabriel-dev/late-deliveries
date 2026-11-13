@@ -10,6 +10,7 @@ dependencies = [
     "pyarrow",
     "pyfixest>=0.70.0",
     "rddensity>=3.0",
+    "rdrobust>=2.1.1",
 ]
 
 [build-system]

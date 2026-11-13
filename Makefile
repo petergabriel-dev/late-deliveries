@@ -1,7 +1,7 @@
-.PHONY: all check-data build test diagnostics naive fe
+.PHONY: all check-data build test diagnostics naive fe rd
 
 # One command rebuilds every result from the committed raw CSVs.
-all: test diagnostics naive fe
+all: test diagnostics naive fe rd
 
 # Verify committed raw CSVs are byte-identical to the published dataset.
 check-data:
@@ -25,3 +25,7 @@ naive: build
 # Pre-registered FE regression grid (ADR-0007, ADR-0008) -> outputs/fe.{md,json}
 fe: build
 	uv run python -m late_delivery.fe
+
+# Donut RD at the promised date (corroborating; ADR-0008 §3) -> outputs/rd.{md,json}, fig_rd.png
+rd: build
+	uv run python -m late_delivery.rd

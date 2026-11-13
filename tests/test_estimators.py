@@ -2,8 +2,10 @@
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from late_delivery import config as C
+from late_delivery import rd
 from late_delivery.fe import (
     DELIVERY_BIN_COLS, LATE_BIN_COLS, analysis_frame, fit, model_specs, run_grid,
 )
@@ -118,6 +120,38 @@ def test_fe_recovers_planted_bin_effects():
     # which would all cover only ~81% of the time.
     for term, value in truth.items():
         assert abs(est[term]["estimate"] - value) < 3.3 * est[term]["se"], term
+
+
+def rd_frame(n: int = 200_000, jump: float = 0.20, seed: int = 3) -> pd.DataFrame:
+    """Analysis-frame columns the RD reads: a planted jump at the cutoff, junk on the donut days."""
+    rng = np.random.default_rng(seed)
+    x = rng.integers(-12, 13, n).astype(float)
+    p = 0.10 + 0.005 * x + jump * (x >= 1)
+    y = (rng.random(n) < p).astype(float)
+    y[np.isin(x, C.RD_DONUT_DAYS)] = 1.0  # sorting/heaping at the cutoff: only the donut protects the estimate
+    return pd.DataFrame({"days_late": x, "low_review": y, "has_review": True,
+                         "seller_id": [f"s{s}" for s in rng.integers(0, 2_000, n)]})
+
+
+def test_rd_recovers_planted_jump_with_donut():
+    f = rd_frame()
+    main = rd.run(f)[0]
+    assert main["spec"] == "main" and main["dropped_days"] == [0, 1]
+    assert main["days_left"] == [-6, -5, -4, -3, -2, -1] and main["days_right"] == [2, 3, 4, 5, 6, 7]
+    assert main["ci95_low"] <= 0.20 <= main["ci95_high"]
+    assert abs(main["estimate"] - 0.20) < 0.02
+    no_donut = rd.run(f)[-1]
+    assert no_donut["spec"] == "no donut" and abs(no_donut["estimate"] - 0.20) > 0.1  # the junk days bite without it
+
+
+def test_rd_window_and_donut_guards():
+    f = rd_frame(n=20_000)
+    for s in rd.SPECS:
+        d = rd.rd_sample(f, s["bandwidth"], s["donut"])
+        assert (d["days_late"] - C.RD_CUTOFF).abs().max() < s["bandwidth"]
+        assert d["days_late"].isin(C.RD_DONUT_DAYS).any() != s["donut"]
+    with pytest.raises(ValueError, match="donut"):
+        rd.estimate(rd.rd_sample(f, C.RD_BANDWIDTH, donut=False), C.RD_BANDWIDTH, donut=True)
 
 
 def test_run_grid_samples():

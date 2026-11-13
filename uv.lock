@@ -329,6 +329,7 @@ dependencies = [
     { name = "pyarrow" },
     { name = "pyfixest" },
     { name = "rddensity" },
+    { name = "rdrobust" },
 ]
 
 [package.dev-dependencies]
@@ -344,6 +345,7 @@ requires-dist = [
     { name = "pyarrow" },
     { name = "pyfixest", specifier = ">=0.70.0" },
     { name = "rddensity", specifier = ">=3.0" },
+    { name = "rdrobust", specifier = ">=2.1.1" },
 ]
 
 [package.metadata.requires-dev]
@@ -840,6 +842,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/82/bc/4481255a9c40ee800b81f96cafd0d423ced295fcee852855a79d9610e775/rddensity-3.0.tar.gz", hash = "sha256:8c48e490e62d42347e0fd5fdddb3c33fe812e07c9bdba2e71d214eb92921dbf7", size = 19468, upload-time = "2026-05-21T19:09:57.096Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b2/99/c13f08e60287b852dba07952567a92d7efbda9f6aa8006581bb7371e8ee1/rddensity-3.0-py3-none-any.whl", hash = "sha256:9175430dd26956a94ac2811f8ca0963a40939cce2aaf8aa3f9929f05bae26840", size = 20708, upload-time = "2026-05-21T19:09:55.434Z" },
+]
+
+[[package]]
+name = "rdrobust"
+version = "2.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "matplotlib" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "plotnine" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1f/71/b39afa9f0d26ebef7f6c686033ea178680a9f8f5ed41bb0e4542c116470a/rdrobust-2.1.1.tar.gz", hash = "sha256:7568a24b3b5bcd9d701bec98f4089ad60b0e25a42e0eec33698b33c24e0139c5", size = 107207, upload-time = "2026-10-07T22:48:50.378Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b0/05/810a1a567388bfd8841a0971f400143c8db4571f0379652803385b9cf35a/rdrobust-2.1.1-py3-none-any.whl", hash = "sha256:4cb51615eb0557616769831cc4c12351cbf33cef43a18d473170e26fcfb3d659", size = 100959, upload-time = "2026-10-07T22:48:48.776Z" },
 ]
 
 [[package]]
