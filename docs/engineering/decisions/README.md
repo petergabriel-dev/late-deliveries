@@ -11,3 +11,4 @@
 | ADR-0007 | Active | Pre-registration - FE regression headline; donut RD and matching corroborate (JC 2, 3, 4) | Before running, changing, or interpreting any Phase 2-4 estimate |
 | ADR-0008 | Active | Phase 2 implementation choices - fills ADR-0007 gaps before estimation (JC 2, 3, 4) | Implementing, running, or interpreting any Phase 2 estimate, verdict, or flag |
 | ADR-0009 | Active | Matching - drop orders perfectly predicted by the propensity model (supersedes ADR-0008 §4 in part) (JC 3) | Running, changing, or interpreting the propensity-score matching estimate |
+| ADR-0010 | Active | Phase 2 reconciliation applied - headline stands, matching converges, donut RD diverges (JC 4) | Interpreting, reporting, or comparing the Phase 2 estimates, or before Phase 3 robustness work |
