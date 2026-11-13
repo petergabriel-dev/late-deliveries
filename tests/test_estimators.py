@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from late_delivery import config as C
-from late_delivery import matching, rd
+from late_delivery import ladder, matching, rd
 from late_delivery.fe import (
     DELIVERY_BIN_COLS, LATE_BIN_COLS, analysis_frame, fit, model_specs, run_grid,
 )
@@ -233,3 +233,63 @@ def test_run_grid_samples():
     assert rows["repeat_90d/e"]["n_sample"] == on_time
     assert rows["low_review/a"]["n_sample"] == 4_000 - 100
     assert all(r["n_obs"] + r["singleton_rows_dropped"] == r["n_sample"] for r in rows.values())
+
+
+def _est(e, half=0.01, lo=None, hi=None):
+    return {"estimate": e, "ci95_low": e - half if lo is None else lo, "ci95_high": e + half if hi is None else hi}
+
+
+def ladder_inputs(rd_est=0.515, match_est=0.52, smd=0.05, b12=0.15, b37=0.50, r90=-0.002, r180=-0.003,
+                  low=(0.50, 0.53), star5=(-0.44, -0.41)):
+    """Synthetic result dicts shaped like naive/fe/rd/matching.json; headline CI = [0.50, 0.53]."""
+    naive = {"outcomes": [{"outcome": "low_review (primary)", "difference": 0.54, "ci95_low": 0.53, "ci95_high": 0.55,
+                           "n_late": 10, "n_on_time": 90}]}
+    fe = {"primary": {**_est(0.515, lo=0.50, hi=0.53), "n_obs": 100},
+          "models": [
+              {"id": "low_review/a", "estimates": [{"term": "late", **_est(sum(low) / 2, lo=low[0], hi=low[1])}]},
+              {"id": "low_review/b", "estimates": [{"term": "late_1_2", **_est(b12)}, {"term": "late_3_7", **_est(b37)}]},
+              {"id": "repeat_90d/a", "estimates": [{"term": "late", **_est(r90, 0.003)}]},
+              {"id": "repeat_180d/a", "estimates": [{"term": "late", **_est(r180, 0.003)}]},
+              {"id": "star_5/a", "estimates": [{"term": "late", **_est(sum(star5) / 2, lo=star5[0], hi=star5[1])}]},
+          ]}
+    rd_row = {"days_left": [-6, -1], "days_right": [2, 7], "n_left": 5, "n_right": 5}
+    rd = {"estimates": [
+        {**rd_row, **_est(rd_est, 0.1), "spec": "main", "role": "corroborating (ADR-0007 §3)", "dropped_days": [0, 1]},
+        {**rd_row, **_est(0.0, 0.1), "spec": "h = 5.5", "role": "sensitivity", "dropped_days": [0, 1]},
+    ]}
+    matching_ = {"att": _est(match_est), "sample": {"matched_late": 10}, "balance": {"max_abs_smd_after": smd}}
+    return {"naive": naive, "fe": fe, "rd": rd, "matching": matching_}
+
+
+def _fired(result):
+    return {f["flag"] for f in result["flags"] if f["fired"]}
+
+
+def test_ladder_converge_branch_and_roles():
+    r = ladder.build(**ladder_inputs())
+    assert r["reconciliation"]["verdicts"] == {"Donut RD": "converges", "Matching": "converges"}
+    assert not r["reconciliation"]["headline_fragile"] and _fired(r) == set()
+    assert r["reconciliation"]["headline"]["method"] == "FE regression"
+    no_verdict = {x["method"] for x in r["rows"] if x["verdict"] == ""}
+    assert no_verdict == {"Naive difference", "FE regression", "Donut RD (h = 5.5)"}
+    edge = ladder.build(**ladder_inputs(rd_est=0.50, match_est=0.53))  # CI bounds count as inside
+    assert set(edge["reconciliation"]["verdicts"].values()) == {"converges"}
+
+
+def test_ladder_diverge_and_fragile_branches():
+    one = ladder.build(**ladder_inputs(rd_est=0.11))
+    assert one["reconciliation"]["verdicts"]["Donut RD"] == "diverges (below)"
+    assert not one["reconciliation"]["headline_fragile"]
+    both_below = ladder.build(**ladder_inputs(rd_est=0.11, match_est=0.40))
+    assert both_below["reconciliation"]["headline_fragile"]
+    opposite = ladder.build(**ladder_inputs(rd_est=0.11, match_est=0.60))
+    assert opposite["reconciliation"]["verdicts"]["Matching"] == "diverges (above)"
+    assert not opposite["reconciliation"]["headline_fragile"]
+
+
+def test_ladder_flags_fire():
+    r = ladder.build(**ladder_inputs(smd=0.12, b12=0.60, b37=0.50, r90=-0.002, r180=0.001,
+                                     low=(-0.01, 0.02), star5=(-0.10, -0.05)))
+    assert _fired(r) == {"balance", "bin order", "repeat window", "star distribution"}
+    edge = ladder.build(**ladder_inputs(smd=0.1, b12=0.5, b37=0.5))  # strict inequalities
+    assert _fired(edge) == set()
