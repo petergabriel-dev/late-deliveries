@@ -1,4 +1,4 @@
-.PHONY: check-data build test
+.PHONY: check-data build test diagnostics
 
 # Verify committed raw CSVs are byte-identical to the published dataset.
 check-data:
@@ -10,3 +10,7 @@ build: check-data
 
 test: build
 	uv run pytest
+
+# Phase 1 design diagnostics (no outcome contrasts) -> outputs/diagnostics.{md,json}, figures
+diagnostics: build
+	uv run python -m late_delivery.diagnostics
