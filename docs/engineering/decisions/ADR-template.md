@@ -1,11 +1,19 @@
 ---
 id: ADR-000N
-title: Short title
+title: Short title (append "(JC n)" when it settles brief judgment call n)
 status: Proposed | Active | Superseded | Deprecated
 date: YYYY-MM-DD
+kind: analytical | engineering
+judgment_call: 1-6 | none
+readWhen: one line, no pipe characters; feeds the generated index
 ---
 
 # ADR-000N: Short title
+
+## Options considered
+
+- Option A — main tradeoff
+- Option B — main tradeoff
 
 ## Decision
 
@@ -16,6 +24,10 @@ date: YYYY-MM-DD
 
 - Main reason/tradeoff 1
 - Main reason/tradeoff 2
+
+## Falsification test
+
+- Evidence that would show this decision is wrong, and where it would show up
 
 ## Affects
 
