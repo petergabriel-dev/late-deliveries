@@ -8,6 +8,7 @@ dependencies = [
     "numpy",
     "pandas",
     "pyarrow",
+    "pyfixest>=0.70.0",
     "rddensity>=3.0",
 ]
 

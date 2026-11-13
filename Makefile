@@ -1,7 +1,7 @@
-.PHONY: all check-data build test diagnostics naive
+.PHONY: all check-data build test diagnostics naive fe
 
-# One command rebuilds every Phase 1 result from the committed raw CSVs.
-all: test diagnostics naive
+# One command rebuilds every result from the committed raw CSVs.
+all: test diagnostics naive fe
 
 # Verify committed raw CSVs are byte-identical to the published dataset.
 check-data:
@@ -21,3 +21,7 @@ diagnostics: build
 # Naive late vs on-time baseline (biased; allowed after ADR-0007) -> outputs/naive.{md,json}
 naive: build
 	uv run python -m late_delivery.naive
+
+# Pre-registered FE regression grid (ADR-0007, ADR-0008) -> outputs/fe.{md,json}
+fe: build
+	uv run python -m late_delivery.fe
