@@ -65,3 +65,10 @@ CONTINUITY_COVARIATES = ("log_price", "log_freight", "n_items", "distance_km", "
 # ADR-0011 §5: check 6 benchmark groups (analysis-frame columns) and confounder strengths k (kd = ky = k).
 SENSITIVITY_BENCHMARKS = {"distance": ("distance_km", "distance_missing"), "customer_state": ("customer_state",)}
 SENSITIVITY_K = (1, 2, 3)
+
+# ADR-0013 §8: every Phase 4 money input (assumed values with sources; measured inputs as refs).
+ASSUMPTIONS_TOML = ROOT / "assumptions.toml"
+# ADR-0013 §6: flag 1 fires if measured channel 1 is below this share of the central total.
+MONEY_MEASURED_SHARE_MIN = 0.10
+# ADR-0013 §3: order statuses left out of the seller's later orders exposed to a bad review.
+LATER_ORDER_EXCLUDED_STATUSES = ("canceled", "unavailable")
