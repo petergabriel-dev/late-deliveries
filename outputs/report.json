@@ -1,1 +1,10 @@
-{}
+{
+  "memo_review_scale": 100,
+  "memo_review_more": 51.6256,
+  "memo_rd_more": 11.7059,
+  "memo_disruption_more": 49.1795,
+  "memo_horizon_low_brl": 0.99465,
+  "memo_horizon_high_brl": 3.159372,
+  "memo_horizon_low_usd": 0.298645,
+  "memo_horizon_high_usd": 0.948607
+}

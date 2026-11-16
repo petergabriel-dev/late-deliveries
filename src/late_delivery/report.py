@@ -12,7 +12,19 @@ from late_delivery.diagnostics import rounded
 
 def derived(sources: dict) -> dict:
     """Sole home for report arithmetic and exact-match list selections."""
-    return {}
+    money = sources["money"]
+    horizon = one(money["tornado"], input="horizon_days")
+    scale = 100  # ADR-0015 / T34: unhappy reviews per this many late orders.
+    return {
+        "memo_review_scale": scale,
+        "memo_review_more": sources["fe"]["primary"]["estimate"] * scale,
+        "memo_rd_more": one(sources["ladder"]["rows"], method="Donut RD")["estimate"] * scale,
+        "memo_disruption_more": one(sources["robustness"]["checks"], id=10)["estimate"] * scale,
+        "memo_horizon_low_brl": horizon["low_revenue"],
+        "memo_horizon_high_brl": horizon["high_revenue"],
+        "memo_horizon_low_usd": horizon["low_revenue"] / money["fx"]["brl_per_usd"],
+        "memo_horizon_high_usd": horizon["high_revenue"] / money["fx"]["brl_per_usd"],
+    }
 
 
 def load_sources(outputs_dir: Path | None = None, assumptions_path: Path | None = None) -> dict:

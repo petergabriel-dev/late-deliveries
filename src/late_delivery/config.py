@@ -78,6 +78,6 @@ REPORT_DIR = ROOT / "docs" / "report"
 # ADR-0015: computed report values, not a hand-maintained analysis source.
 REPORT_JSON = OUTPUTS_DIR / "report.json"
 # ADR-0015: (template, target) pairs added with each communication deliverable.
-REPORT_TEMPLATES = ()
+REPORT_TEMPLATES = ((REPORT_DIR / "memo.template.md", REPORT_DIR / "memo.md"),)
 # ADR-0015: Markdown memo word cap; changing it requires a new ADR.
 MEMO_MAX_WORDS = 450

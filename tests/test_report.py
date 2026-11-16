@@ -7,6 +7,20 @@ import pytest
 from late_delivery import report as R
 
 
+def test_memo_arithmetic_on_synthetic_sources():
+    sources = {"money": {"tornado": [{"input": "other"}, {"input": "horizon_days", "low_revenue": 6,
+                                                             "high_revenue": 12}],
+                         "fx": {"brl_per_usd": 3}},
+               "fe": {"primary": {"estimate": 0.4}},
+               "ladder": {"rows": [{"method": "Donut RD", "estimate": 0.1}]},
+               "robustness": {"checks": [{"id": 10, "estimate": 0.3}]}}
+    assert R.derived(sources) == {
+        "memo_review_scale": 100, "memo_review_more": 40, "memo_rd_more": 10, "memo_disruption_more": 30,
+        "memo_horizon_low_brl": 6, "memo_horizon_high_brl": 12,
+        "memo_horizon_low_usd": 2, "memo_horizon_high_usd": 4,
+    }
+
+
 def test_nested_lookup_format_escape_and_determinism():
     sources = {"fe": {"primary": {"estimate": 0.51234}}, "assumptions": {"count": 1234}}
     template = "{{literal}} {fe:primary.estimate:.1%}; {assumptions:count:,}"
