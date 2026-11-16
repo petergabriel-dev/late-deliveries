@@ -6,8 +6,9 @@ import pytest
 
 from late_delivery import config as C
 from late_delivery import ladder, matching, rd
+from late_delivery import robustness as R
 from late_delivery.fe import (
-    DELIVERY_BIN_COLS, LATE_BIN_COLS, analysis_frame, fit, model_specs, run_grid,
+    CONTROLS, DELIVERY_BIN_COLS, LATE_BIN_COLS, analysis_frame, fit, model_specs, run_grid,
 )
 
 
@@ -352,3 +353,80 @@ def test_ladder_flags_fire():
     assert _fired(r) == {"balance", "bin order", "repeat window", "star distribution"}
     edge = ladder.build(**ladder_inputs(smd=0.1, b12=0.5, b37=0.5))  # strict inequalities
     assert _fired(edge) == set()
+
+
+# Reference values copied from the sensemakr R package, v0.1.6 (master; DESCRIPTION Date 2024-07-22),
+# tests/testthat/test-02-darfur.R, read 2026-11-16:
+# https://raw.githubusercontent.com/carloscinelli/sensemakr/master/tests/testthat/test-02-darfur.R
+# Model: lm(peacefactor ~ directlyharmed + age + farmer_dar + herder_dar + pastvoted + hhsize_darfur
+#           + female + village, data = darfur). Lines checked with tolerance = 1e5 (a typo there) are not used.
+DARFUR = {"estimate": 0.09731582, "se": 0.02325654, "dof": 783,
+          "r2yd_x": 0.02187309, "rv_q": 0.138776, "rv_qa": 0.07625797}
+DARFUR_FEMALE_BOUNDS = {  # `check_bounds` in the same file: benchmark female, kd = ky = 1, 2, 3
+    "r2dz_x": (0.00916428667504862, 0.0183285733500972, 0.0274928600251459),
+    "r2yz_dx": (0.12464092303637, 0.249324064199975, 0.374050471038094),
+    "adjusted_estimate": (0.0752202712144491, 0.0529151723844518, 0.0303960234641548),
+    "adjusted_se": (0.0218733277437572, 0.0203500620779637, 0.0186700648170924),
+    "adjusted_t": (3.43890386024675, 2.60024623913809, 1.62806202131271),
+    "ci95_low": (0.032282966, 0.012968035, -0.006253282),
+    "ci95_high": (0.11815758, 0.09286231, 0.06704533),
+}
+
+
+def test_sensitivity_darfur_stats():
+    t = DARFUR["estimate"] / DARFUR["se"]
+    assert R.partial_r2(t, DARFUR["dof"]) == pytest.approx(DARFUR["r2yd_x"], abs=1e-5)
+    assert R.robustness_value(t, DARFUR["dof"]) == pytest.approx(DARFUR["rv_q"], abs=1e-5)
+    assert R.robustness_value(t, DARFUR["dof"], alpha=0.05) == pytest.approx(DARFUR["rv_qa"], abs=1e-5)
+
+
+def test_sensitivity_darfur_female_bounds():
+    """The file does not state female's partial R² values, so they are recovered from its 1x bound.
+
+    Inverting the 1x row pins r2dxj_x and r2yxj_dx; the 2x and 3x rows and every adjusted estimate,
+    SE, t and CI are then independent checks of the bound, bias and SE formulas.
+    """
+    b = DARFUR_FEMALE_BOUNDS
+    r2dxj_x = b["r2dz_x"][0] / (1 + b["r2dz_x"][0])
+    r2zxj_xd = r2dxj_x**2 / (1 - r2dxj_x) ** 2
+    g = b["r2yz_dx"][0] / ((1 + np.sqrt(r2zxj_xd)) ** 2 / (1 - r2zxj_xd))
+    r2yxj_dx = g / (1 + g)
+    crit = R.student_t.ppf(0.975, DARFUR["dof"] - 1)
+    rows = R.confounder_bounds(DARFUR["estimate"], DARFUR["se"], DARFUR["se"], crit, DARFUR["dof"], r2dxj_x, r2yxj_dx)
+    assert [r["k"] for r in rows] == [1, 2, 3]
+    for key, want in b.items():
+        assert [r[key] for r in rows] == pytest.approx(list(want), abs=1e-6), key
+
+
+def test_fit_iid_matches_statsmodels_and_group_partial_r2():
+    import statsmodels.formula.api as smf
+    from patsy.builtins import C  # noqa: F401  formulas below need patsy's C(), not this module's `config as C`
+
+    t = make_orders(n=3_000, seed=21)
+    t.loc[:40, "distance_km"] = np.nan  # give distance_missing variation, as on real data
+    f = analysis_frame(t)
+    full = R.fit_iid(f, "low_review", ["late"])
+    assert full["n_obs"] == len(f)  # no singletons in this design
+    fe_terms = "C(seller_id) + C(purchase_week)"
+    sm_full = smf.ols(f"low_review ~ late + {CONTROLS} + {fe_terms}", data=f).fit()
+    assert full["dof"] == sm_full.df_resid
+    assert full["terms"]["late"]["t"] == pytest.approx(sm_full.tvalues["late"], rel=1e-6)
+    # Single regressor: RSS-based partial R² equals t²/(t² + df).
+    no_d = R.fit_iid(f, "low_review", [])
+    t_late = full["terms"]["late"]["t"]
+    assert R.group_partial_r2(no_d["rss"], full["rss"]) == pytest.approx(R.partial_r2(t_late, full["dof"]), abs=1e-8)
+    # Group: RSS-based partial R² equals the F-test form F*q / (F*q + df).
+    no_state = R.fit_iid(f, "low_review", ["late"], drop=("customer_state",))
+    sm_r = smf.ols(f"low_review ~ late + {CONTROLS.replace('C(customer_state) + ', '')} + {fe_terms}", data=f).fit()
+    F, _, q = sm_full.compare_f_test(sm_r)
+    assert R.group_partial_r2(no_state["rss"], full["rss"]) == pytest.approx(F * q / (F * q + sm_full.df_resid), abs=1e-8)
+
+
+def test_sensitivity_guards():
+    assert R.robustness_value(1.0, 100, alpha=0.05) == 0.0  # not significant: RV is 0
+    with pytest.raises(ValueError, match="impossible"):
+        R.ovb_partial_r2_bound(0.5, 0.1, kd=2)
+    with pytest.raises(ValueError, match="out of order"):
+        R.group_partial_r2(1.0, 2.0)
+    with pytest.raises(ValueError, match="not a control"):
+        R.fit_iid(analysis_frame(make_orders(n=50)), "low_review", ["late"], drop=("seller_id",))
