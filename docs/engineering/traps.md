@@ -26,6 +26,10 @@ Known gotchas in the Olist data and this pipeline. Counts are from the committed
 
 ## Tooling
 
+- **Report links use the rendered location.** `docs/report/README.template.md` renders at root `README.md`, so its links start at the repo root; memo/write-up links start in `docs/report/`. The renderer checks relative destinations, not external URLs or anchor existence.
+- **Generated Markdown is overwritten.** Edit `docs/report/*.template.md`, never root `README.md` or rendered memo/write-up. A full `make check-outputs` rebuild can erase a hand edit before checking Git. Negative guard tests use `make -o all check-outputs` to isolate the recipe, then restore the fixture; normal staleness checks must still rebuild.
+- **PNG bytes are excluded from the guard.** Figures remain committed and `make all` regenerates them, but the byte check cannot prove a PNG is current or visually correct. Review figures separately.
+- **Literal braces need escaping.** In report templates, write `{{` and `}}` for literal braces; stray single braces raise. Arithmetic and list selection belong in `derived()`, not template expressions (ADR-0015).
 - **pandas 3.** Copy-on-write and the default string dtype differ from pandas 2 examples; `Series.dt.weekday` raises a deprecation warning.
 - **Decision index.** `/docs update-index` writes only in Pi Build mode. Check the index's modification time and contents after running it; a run in the wrong mode silently leaves it stale. From Claude Code, importing Pi's `engineering-docs/filesystem.ts` with Node fails (`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`: no type stripping under `node_modules`). Instead, take the source of its functions from `parseFrontmatter` to `updateDecisionIndex`, strip the types with `node:module`'s `stripTypeScriptTypes`, and evaluate it with the constants from `constants.ts`. Its output matches Pi's byte for byte.
 - **Triangular kernel edge.** With cutoff 0.5 and bandwidth h, a day exactly h from the cutoff gets zero weight and rdrobust leaves it out of `N_h`. `rd.py` keeps only days with |days_late - 0.5| < h and checks `N_h == N`.

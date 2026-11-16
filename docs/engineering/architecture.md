@@ -29,15 +29,23 @@ src/late_delivery/robustness.py               (make robustness)  → outputs/rob
 orders.parquet + fe.json + assumptions.toml
         ▼
 src/late_delivery/money.py                    (make money)       → outputs/money.{md,json}, fig_money_tornado.png
+
+outputs/*.json (excluding report.json) + assumptions.toml + docs/report/*.template.md
+        ▼
+src/late_delivery/report.py                   (make report)
+        ├── outputs/report.json               derived values and summary tables
+        ├── docs/report/memo.md
+        ├── docs/report/writeup.md
+        └── README.md                         rendered at the repo root
 ```
 
-`make all` runs check-data → build → test → diagnostics → naive, fe, rd, matching → ladder → robustness → money. Generated results in `outputs/` are committed and guarded by `make check-outputs` (PNG bytes excluded; ADR-0015); intermediate data in `data/processed/` stays gitignored and untracked. `assumptions.toml` (repo root, committed) holds every money input (ADR-0013 §8).
+`make all` runs check-data → build → test → diagnostics → naive, fe, rd, matching → ladder → robustness → money → report. Generated results in `outputs/`, rendered reports and their templates in `docs/report/`, and root `README.md` are committed and guarded by `make check-outputs` (PNG bytes excluded; ADR-0015); intermediate data in `data/processed/` stays gitignored and untracked. `assumptions.toml` (repo root, committed) holds every money input (ADR-0013 §8).
 
 ## Components
 
 | Module | Responsibility |
 |---|---|
-| `config.py` | Every analysis parameter: paths, purchase window, repeat windows, follow-up cap, low-review threshold, Black Friday date; Phase 2 distance cap, days-late and delivery-days bins, RD cutoff and bandwidths, matching caliper (ADR-0008); Phase 3 check windows, strike dates, placebo cutoffs, continuity covariates, sensitivity benchmarks (ADR-0011); Phase 4 assumptions-file path, flag 1 threshold, statuses left out of later orders (ADR-0013). Money input values live in `assumptions.toml`, not here. |
+| `config.py` | Every analysis parameter: paths, purchase window, repeat windows, follow-up cap, low-review threshold, Black Friday date; Phase 2 distance cap, days-late and delivery-days bins, RD cutoff and bandwidths, matching caliper (ADR-0008); Phase 3 check windows, strike dates, placebo cutoffs, continuity covariates, sensitivity benchmarks (ADR-0011); Phase 4 assumptions-file path, flag 1 threshold, statuses left out of later orders (ADR-0013); Phase 5 `REPORT_DIR`, `REPORT_JSON`, `REPORT_TEMPLATES`, `MEMO_MAX_WORDS` (ADR-0015). Money input values live in `assumptions.toml`, not here. |
 | `build.py` | Reads the 8 CSVs the analysis needs; builds treatment, outcome, covariate and sample columns (ADR-0003..0005); writes the parquet and exclusion counts. Pure functions plus `main()`. |
 | `diagnostics.py` | Phase 1 design diagnostics. Never loads `review_score` or `low_review`; the only outcome statistic is the pooled repeat base rate for power (invariant 3). Also holds the shared report helpers (`md_table`, `rounded`) and chart palette. |
 | `naive.py` | Biased late vs on-time baseline, allowed only after ADR-0007. |
@@ -47,6 +55,7 @@ src/late_delivery/money.py                    (make money)       → outputs/mon
 | `ladder.py` | Reads the four estimate JSONs; computes the ADR-0007 §4 verdicts and the falsification flags in code (ADR-0008 §5). ADR-0010 records how they were read. |
 | `robustness.py` | The 12 pre-registered Phase 3 checks (ADR-0007 §7): check samples (relabels, date and review masks, multi-seller frame), FE, placebo and continuity runners, hand-rolled Cinelli-Hazlett sensitivity, and the ADR-0011 §1 flags computed in code. ADR-0012 records how they were read. |
 | `money.py` | Phase 4 cost per late delivery (ADR-0013): validates `assumptions.toml` and resolves measured refs in `fe.json`; channel 1 (repeat, measured upper bound), channel 2 (rating spillover: seller exposure from each late order's review answer time, per-later-order dilution by the seller's visible review count), channel 3 (illustrative add-on); corners, tornado and flags 1-3 computed in code; the disruption scenario re-fit on `robustness.check_frames(t)[10]`; the lateness-mix decomposition. ADR-0014 records how the results were read. |
+| `report.py` | Phase 5 communication (ADR-0015): loads analysis JSON by stem and TOML as `assumptions`; `derived()` selects list rows with `one()`, computes presentation values and builds small `md_table` summaries; dictionary-only placeholders render the memo, write-up and README. Validates every document, memo word cap, relative links and derived-key use before writing. Stale `report.json` is never an analysis input. |
 
 ## Order-level table (`orders.parquet`)
 
