@@ -22,16 +22,23 @@ singleton drop, using residual sums of squares of nested fits. The bias uses the
 adjusted CI uses the headline's seller-clustered SE scaled by the same SE factor (ADR-0011 §5).
 """
 
+import json
 import math
 import warnings
 
-import pandas as pd
-import pyfixest as pf
-from scipy.stats import t as student_t
+import matplotlib
 
-from late_delivery import config as C
-from late_delivery import rd
-from late_delivery.fe import CATEGORICAL_CONTROLS, FIXED_EFFECTS, NUMERIC_CONTROLS, analysis_frame, fit
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+import pandas as pd  # noqa: E402
+import pyfixest as pf  # noqa: E402
+from matplotlib.lines import Line2D  # noqa: E402
+from scipy.stats import t as student_t  # noqa: E402
+
+from late_delivery import config as C  # noqa: E402
+from late_delivery import rd  # noqa: E402
+from late_delivery.diagnostics import GRID, INK, INK_2, SERIES, SURFACE, _style, md_table, rounded  # noqa: E402
+from late_delivery.fe import CATEGORICAL_CONTROLS, FIXED_EFFECTS, NUMERIC_CONTROLS, analysis_frame, fit  # noqa: E402
 
 
 # --- Sensitivity formulas (Cinelli and Hazlett 2020; sensemakr numeric methods) -------------------
@@ -376,3 +383,164 @@ def run_checks(t: pd.DataFrame, fe_json: dict, rd_json: dict) -> list[dict]:
         results.append({"id": cid, "label": label, "class": cls, "rule": text, **r,
                         "fired": flag(cid, r, headline, rd_main), "if_fired": if_fired})
     return results
+
+
+# --- Report ----------------------------------------------------------------------------------------
+
+def spec() -> dict:
+    """Echo of the ADR-0011 parameters the run used, so drift from the ADR is visible."""
+    day = "%Y-%m-%d"
+    return {
+        "model": "headline model (a): low_review on binary late, ADR-0007 §1 controls, seller + purchase-week FE, "
+                 "singletons dropped, CRV1 by seller, orders with a review",
+        "check1_late_min_days": C.CHECK1_LATE_MIN_DAYS,
+        "check2_route": "seller_state -> customer_state; median delivery_days over all headline orders; late = strictly above",
+        "check3_black_friday_week": [d.strftime(day) for d in C.BLACK_FRIDAY_WEEK_2017],
+        "check7_multi_seller_label": C.MULTI_SELLER_LABEL,
+        "check10_surge": [d.strftime(day) for d in C.SURGE_2018],
+        "check10_strike_first_last_day": [d.strftime(day) for d in C.STRIKE_2018],
+        "check11_window_start": C.CHECK11_WINDOW_START.strftime(day),
+        "date_windows": "[start, end) on the purchase date; strike: purchase date <= last day and promised date >= first day",
+        "rd_bandwidth": C.RD_BANDWIDTH,
+        "placebo_cutoffs": [{"cutoff": c, "donut_days": list(d)} for c, d in C.PLACEBO_CUTOFFS],
+        "continuity_covariates": list(C.CONTINUITY_COVARIATES),
+        "sensitivity_benchmarks": {k: list(v) for k, v in C.SENSITIVITY_BENCHMARKS.items()},
+        "sensitivity_k": list(C.SENSITIVITY_K),
+    }
+
+
+def build(t: pd.DataFrame, fe_json: dict, rd_json: dict) -> dict:
+    checks = run_checks(t, fe_json, rd_json)
+    first_fe = next(c for c in checks if "rows_vs_headline" in c)
+    return {
+        "label": "Phase 3 robustness checks (ADR-0007 §7, ADR-0011)",
+        "outcome": "low_review (share of 1-2 star reviews, 0-1 scale)",
+        "headline": {**headline_from(fe_json), "n_with_review": first_fe["n_sample"] - first_fe["rows_vs_headline"]},
+        "rd_main_estimate": rd_main_from(rd_json),
+        "spec": spec(),
+        "checks": checks,
+        "flags_fired": [c["id"] for c in checks if c["fired"]],
+    }
+
+
+def _fmt(x, f="{:.4f}") -> str:
+    return "-" if x is None else f.format(x)
+
+
+def to_markdown(d: dict) -> str:
+    h, by = d["headline"], {c["id"]: c for c in d["checks"]}
+    fired = {True: "yes", False: "no", None: "n/a"}
+    summary = [{"check": f"{c['id']}. {c['label']}", "class": c["class"],
+                "estimate": _fmt(c.get("estimate")) if c["id"] not in (4, 5, 6) else "see below",
+                "ci95_low": _fmt(c.get("ci95_low")) if c["id"] not in (4, 5, 6) else "",
+                "ci95_high": _fmt(c.get("ci95_high")) if c["id"] not in (4, 5, 6) else "",
+                "orders_with_review": _fmt(c.get("n_sample"), "{:,}"), "rows_vs_headline": _fmt(c.get("rows_vs_headline"), "{:+,}"),
+                "late_orders": _fmt(c.get("late_orders"), "{:,}"), "flag_fired": fired[c["fired"]]} for c in d["checks"]]
+    flags = [{"check": c["id"], "rule": c["rule"], "fired": fired[c["fired"]], "if fired": c["if_fired"]} for c in d["checks"]]
+    rd_cols = ("estimate", "estimate_bias_corrected", "ci95_low", "ci95_high")
+    placebos = [{"cutoff": f"{p['cutoff']:g}", "donut_days": ", ".join(map(str, p["donut_days"])),
+                 **{k: _fmt(p[k]) for k in rd_cols}, "n_left": p["n_left"], "n_right": p["n_right"],
+                 "days_left": f"{min(p['days_left'])}..{max(p['days_left'])} ({len(p['days_left'])})",
+                 "days_right": f"{min(p['days_right'])}..{max(p['days_right'])} ({len(p['days_right'])})"}
+                for p in by[4]["placebos"]]
+    covs = [{"covariate": c["covariate"], **{k: _fmt(c[k]) for k in rd_cols},
+             "robust_ci_excludes_0": "yes" if not _includes_zero(c) else "no"} for c in by[5]["covariates"]]
+    s = by[6]
+    bounds = [{"benchmark": b["benchmark"], "k": x["k"], "r2dz_x": _fmt(x["r2dz_x"], "{:.6f}"),
+               "r2yz_dx": _fmt(x["r2yz_dx"], "{:.6f}"), "adjusted_estimate": _fmt(x["adjusted_estimate"]),
+               "adjusted_se": _fmt(x["adjusted_se"]), "ci95_low": _fmt(x["ci95_low"]), "ci95_high": _fmt(x["ci95_high"]),
+               "ci_includes_0": "yes" if _includes_zero(x) else "no"} for b in s["benchmarks"] for x in b["bounds"]]
+    benchmarks = [{"benchmark": b["benchmark"], "columns": ", ".join(b["columns"]),
+                   "r2_with_treatment": _fmt(b["r2dxj_x"], "{:.6f}"), "r2_with_outcome": _fmt(b["r2yxj_dx"], "{:.6f}")}
+                  for b in s["benchmarks"]]
+    fired_ids = d["flags_fired"]
+    return "\n\n".join([
+        "# Phase 3 robustness checks",
+        "Generated by `make robustness` from `orders.parquet`, `fe.json` and `rd.json`. Outcome: share of 1-2 star "
+        "reviews (`low_review`, 0-1 scale). Every check, rule and flag below was fixed in ADR-0011 before this run; "
+        "flags are computed by code. Headline (pre-registered FE, ADR-0007): "
+        f"{h['estimate']:.4f}, 95% CI [{h['ci95_low']:.4f}, {h['ci95_high']:.4f}], {h['n_with_review']:,} orders with a review.",
+        "Classes (ADR-0011 §1): **sample** checks change only which orders enter and fire if the estimate leaves the "
+        "headline CI; **estimand** checks change the treatment or use a biased subset and fire against a direction "
+        "stated in advance; **diagnostic** checks have their own tests; the **reference** check quotes Phase 2.",
+        "## Summary",
+        md_table(summary),
+        "`rows_vs_headline`: orders with a review in the check's sample minus the headline's. FE checks use model (a) "
+        "with the headline's controls, fixed effects and seller-clustered SEs.",
+        "## Flags (ADR-0011 §1)",
+        md_table(flags),
+        f"Flags fired: {', '.join(f'check {i}' for i in fired_ids) if fired_ids else 'none'}.",
+        "## Check 4: placebo cutoffs",
+        f"Main donut RD (ADR-0008 §3) with the cutoff moved; main RD conventional estimate {d['rd_main_estimate']:.4f}. "
+        "Estimate of record: conventional; 95% CI: robust bias-corrected.",
+        md_table(placebos),
+        "## Check 5: covariate continuity at the promised date",
+        "Main donut RD specification with each covariate as the outcome (robust bias-corrected 95% CI).",
+        md_table(covs),
+        "## Check 6: sensitivity to unobserved confounding",
+        f"Cinelli and Hazlett (2020). Headline {s['estimate']:.4f}; seller-clustered SE {s['se_clustered']:.6f}; "
+        f"plain-OLS SE {s['se_iid']:.6f}, t {s['t_iid']:.2f}, residual df {s['dof']:,}. Partial R² of late with the "
+        f"outcome: {s['r2yd_x']:.6f}. Robustness value RV(q = 1): {s['rv_q1']:.4f}; RV(q = 1, alpha = 0.05): "
+        f"{s['rv_q1_alpha05']:.4f}. Bias from plain-OLS partial R² values; adjusted CI from the clustered SE scaled "
+        f"by the sensemakr SE factor, critical value {s['crit']:.4f} (ADR-0011 §5).",
+        "Benchmark groups (partial R² values from nested plain-OLS fits):",
+        md_table(benchmarks),
+        "Confounders k times as strong as each benchmark (kd = ky = k); the flag uses k = 1:",
+        md_table(bounds),
+        "## Check 9: repeat purchase at 180 days",
+        f"Phase 2 `repeat_180d/a` (no new model): {by[9]['estimate']:.4f}, 95% CI [{by[9]['ci95_low']:.4f}, "
+        f"{by[9]['ci95_high']:.4f}], N {by[9]['n_obs']:,}. The Phase 2 repeat-window flag applies (`ladder.md`).",
+        "Notes: check 8 conditions on a consequence of lateness and is biased by design (ADR-0004). Check 7's "
+        f"multi-seller orders share one seller fixed effect and cluster (`{C.MULTI_SELLER_LABEL}`).",
+        "Figure: `fig_robustness.png` (FE checks against the headline CI).",
+    ]) + "\n"
+
+
+def plot(d: dict, path) -> None:
+    h = d["headline"]
+    rows = [{"name": "Headline (pre-registered FE)", "kind": "headline", **h}] + [
+        {"name": f"{c['id']}. {c['label']}" + ("  [flag fired]" if c["fired"] else ""), "kind": c["class"], **c}
+        for c in d["checks"] if c["class"] in ("sample", "estimand")]
+    rows = rows[::-1]  # headline on top
+    fig, ax = plt.subplots(figsize=(10, 6.4), facecolor=SURFACE)
+    ax.axvspan(h["ci95_low"] * 100, h["ci95_high"] * 100, color=SERIES, alpha=0.15, linewidth=0)
+    ax.axvline(0, color=INK_2, linewidth=1)
+    for y, r in enumerate(rows):
+        hollow = r["kind"] == "estimand"
+        ax.hlines(y, r["ci95_low"] * 100, r["ci95_high"] * 100, color=SERIES, linewidth=2)
+        ax.plot(r["estimate"] * 100, y, "o", markersize=8 if r["kind"] == "headline" else 7,
+                markerfacecolor=SURFACE if hollow else SERIES, markeredgecolor=SERIES, markeredgewidth=1.5)
+        ax.annotate(f"{r['estimate'] * 100:+.1f}", (max(r["ci95_high"], r["estimate"]) * 100, y), xytext=(6, 0),
+                    textcoords="offset points", va="center", color=INK_2, fontsize=9)
+    ax.set_yticks(range(len(rows)), [r["name"] for r in rows], color=INK)
+    ax.annotate("headline 95% CI", (h["ci95_low"] * 100, -0.45), xytext=(-4, 0), textcoords="offset points",
+                ha="right", va="center", color=INK_2, fontsize=9)
+    ax.legend(handles=[
+        Line2D([], [], marker="o", linestyle="", color=SERIES, label="same estimand: flag if outside the headline CI"),
+        Line2D([], [], marker="o", linestyle="", color=SERIES, markerfacecolor=SURFACE,
+               label="estimand changes: flag against a stated direction"),
+    ], frameon=False, fontsize=9, labelcolor=INK_2, loc="upper left", bbox_to_anchor=(0.03, 1.0))
+    ax.set_title("Headline under each robustness check\n"
+                 "Late-delivery effect on the 1-2 star share, pp (95% CI)", loc="left", color=INK, fontsize=11)
+    ax.set_ylim(-0.6, len(rows))
+    _style(ax)
+    ax.grid(axis="y", visible=False)
+    ax.grid(axis="x", color=GRID, linewidth=0.8)
+    ax.tick_params(axis="y", colors=INK, labelsize=9)
+    fig.tight_layout()
+    fig.savefig(path, dpi=150, metadata={"Software": None})
+    plt.close(fig)
+
+
+def main() -> None:
+    fe_json, rd_json = (json.loads((C.OUTPUTS_DIR / f"{n}.json").read_text()) for n in ("fe", "rd"))
+    result = rounded(build(pd.read_parquet(C.ORDERS_PARQUET), fe_json, rd_json))
+    (C.OUTPUTS_DIR / "robustness.json").write_text(json.dumps(result, indent=2) + "\n")
+    (C.OUTPUTS_DIR / "robustness.md").write_text(to_markdown(result))
+    plot(result, C.OUTPUTS_DIR / "fig_robustness.png")
+    print("Flags fired: " + (", ".join(f"check {i}" for i in result["flags_fired"]) or "none"))
+    print(f"Wrote {C.OUTPUTS_DIR / 'robustness.md'}")
+
+
+if __name__ == "__main__":
+    main()

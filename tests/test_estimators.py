@@ -500,7 +500,7 @@ def phase3_orders(n: int = 20_000, seed: int = 31) -> pd.DataFrame:
     return t
 
 
-def test_run_checks_end_to_end_synthetic():
+def test_run_checks_end_to_end_synthetic(tmp_path):
     t = phase3_orders()
     f = analysis_frame(t)
     h = fit(f[f["has_review"]], "low_review", ["late"])["estimates"][0]
@@ -528,3 +528,10 @@ def test_run_checks_end_to_end_synthetic():
     assert all([x["k"] for x in b["bounds"]] == list(C.SENSITIVITY_K) for b in s6["benchmarks"])
     assert 0 < s6["rv_q1_alpha05"] < s6["rv_q1"] < 1
     assert by[9]["estimate"] == -0.001
+    # Report and figure render from the same result dict.
+    d = R.rounded({"headline": {**R.headline_from(fe_json), "n_with_review": int(f["has_review"].sum())},
+                   "rd_main_estimate": 0.15, "checks": out, "flags_fired": [r["id"] for r in out if r["fired"]]})
+    md = R.to_markdown(d)
+    assert md.count("\n| ") > 20 and f"{d['headline']['estimate']:.4f}" in md and f"{c3['estimate']:.4f}" in md
+    R.plot(d, tmp_path / "fig.png")
+    assert (tmp_path / "fig.png").stat().st_size > 0
