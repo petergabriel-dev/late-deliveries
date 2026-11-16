@@ -45,7 +45,7 @@ def _ts(s: pd.Series) -> pd.Series:
 
 
 def latest_reviews(reviews: pd.DataFrame) -> pd.DataFrame:
-    """One review per order: the latest-answered one (ADR-0004)."""
+    """One review per order: the latest-answered one (ADR-0004), with its creation and answer times."""
     r = reviews.assign(
         review_answer_timestamp=_ts(reviews["review_answer_timestamp"]),
         review_creation_date=_ts(reviews["review_creation_date"]),
@@ -53,7 +53,8 @@ def latest_reviews(reviews: pd.DataFrame) -> pd.DataFrame:
     r = r.sort_values(
         ["order_id", "review_answer_timestamp", "review_creation_date", "review_id"], na_position="first"
     )
-    return r.drop_duplicates("order_id", keep="last").set_index("order_id")[["review_score", "review_creation_date"]]
+    keep = ["review_score", "review_creation_date", "review_answer_timestamp"]
+    return r.drop_duplicates("order_id", keep="last").set_index("order_id")[keep]
 
 
 def order_items_summary(items: pd.DataFrame, products: pd.DataFrame, translation: pd.DataFrame) -> pd.DataFrame:
@@ -98,14 +99,18 @@ def first_order_repeat(t: pd.DataFrame) -> pd.DataFrame:
     strictly after the first order's delivery timestamp and within w days of it. Outcomes
     exist only for eligible first orders: delivered and delivery + w before FOLLOWUP_END;
     otherwise <NA>.
+
+    repeat_{w}d_gmv (ADR-0013 §10): summed item price of exactly those repeat orders (the same
+    rows that make repeat_{w}d true); 0.0 when there is none; <NA> where not eligible. An order
+    with no items contributes 0. Needs the order-level `price` column.
     """
-    d = t[["order_id", "customer_unique_id", "purchase_ts", "delivery_ts"]].sort_values(
+    d = t[["order_id", "customer_unique_id", "purchase_ts", "delivery_ts", "price"]].sort_values(
         ["customer_unique_id", "purchase_ts", "order_id"]
     )
     is_first = ~d["customer_unique_id"].duplicated()
     first = d[is_first].set_index("order_id")
     pairs = first.reset_index()[["order_id", "customer_unique_id", "delivery_ts"]].merge(
-        d[["customer_unique_id", "purchase_ts"]], on="customer_unique_id"
+        d[["customer_unique_id", "purchase_ts", "price"]], on="customer_unique_id"
     )
     after = pairs[pairs["purchase_ts"] > pairs["delivery_ts"]]
     next_after_delivery = after.groupby("order_id")["purchase_ts"].min().reindex(first.index)
@@ -116,8 +121,11 @@ def first_order_repeat(t: pd.DataFrame) -> pd.DataFrame:
         horizon = first["delivery_ts"] + pd.Timedelta(days=w)
         eligible = (horizon < C.FOLLOWUP_END).reindex(out.index, fill_value=False)
         repeat = (next_after_delivery <= horizon).astype("boolean").reindex(out.index)
+        within = after[after["purchase_ts"] <= after["order_id"].map(horizon)]
+        gmv = within.groupby("order_id")["price"].sum().reindex(out.index, fill_value=0.0).astype("Float64")
         out[f"repeat_{w}d_eligible"] = eligible
         out[f"repeat_{w}d"] = repeat.where(eligible, pd.NA)
+        out[f"repeat_{w}d_gmv"] = gmv.where(eligible, pd.NA)
     return out
 
 
@@ -171,11 +179,10 @@ def build_table(raw: dict[str, pd.DataFrame]) -> pd.DataFrame:
     t["review_created_before_delivery"] = before.mask(created.isna() | t["delivery_ts"].isna())
     # Raw review rows per order; a review_id shared by several orders counts once for each (ADR-0011 §3, check 12).
     t["n_reviews"] = t["order_id"].map(raw["reviews"].groupby("order_id").size()).fillna(0).astype(int)
+    # When the kept review was answered, i.e. became visible (ADR-0013 §3: channel 2 anchor); NaT if none.
+    t["review_answer_ts"] = t["order_id"].map(rv["review_answer_timestamp"])
 
-    # Repeat outcomes (ADR-0004).
-    t = t.join(first_order_repeat(t), on="order_id")
-
-    # Item, seller, and distance covariates.
+    # Item, seller, and distance covariates (joined before the repeat outcomes, whose GMV needs `price`).
     t = t.join(order_items_summary(raw["items"], raw["products"], raw["translation"]), on="order_id")
     t["n_items"] = t["n_items"].fillna(0).astype(int)
     t["n_sellers"] = t["n_sellers"].fillna(0).astype(int)
@@ -189,6 +196,9 @@ def build_table(raw: dict[str, pd.DataFrame]) -> pd.DataFrame:
         seller_zip.map(xy["geolocation_lat"]),
         seller_zip.map(xy["geolocation_lng"]),
     )
+
+    # Repeat outcomes (ADR-0004) and repeat GMV (ADR-0013 §10).
+    t = t.join(first_order_repeat(t), on="order_id")
 
     # Calendar covariates.
     day = t["purchase_ts"].dt.normalize()

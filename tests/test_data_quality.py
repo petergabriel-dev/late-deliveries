@@ -19,6 +19,9 @@ from late_delivery.build import EXCLUSION_ORDER, FILES, read_csv
 # Known issue, kept by project-owner decision (T5, 2026-11-13): 42 geolocation rows lie outside
 # Brazil, pulling some zip-prefix medians abroad. Reported, not fixed; revisit in ADR-0007.
 KNOWN_DISTANCE_OUTLIERS_OVER_5000_KM = 3
+# Eligible first orders whose only repeat orders in the window have no items (canceled or unavailable):
+# a repeat under ADR-0004 with repeat GMV 0. Same count at 90 and 180 days (different people).
+KNOWN_REPEATS_WITHOUT_ITEMS = 4
 
 
 @pytest.fixture(scope="module")
@@ -80,6 +83,25 @@ def test_review_counts_per_order(t):
     assert int((t["n_reviews"] > 1).sum()) == 547
     assert int((t["n_reviews"] == 0).sum()) == 768
     assert (t["n_reviews"] == 0).equals(t["review_score"].isna())
+
+
+def test_review_answer_ts_present_with_review(t):
+    # ADR-0013 §3: every order with a kept review has its answer time; none without.
+    assert t["review_answer_ts"].notna().equals(t["review_score"].notna())
+
+
+def test_repeat_gmv_matches_repeat_flag(t):
+    # ADR-0013 §10: repeat GMV follows the repeat_{w}d rule. A canceled or unavailable order with no
+    # items still counts as a repeat (ADR-0004) but adds no item value, so 4 first orders per window
+    # have a repeat with GMV 0 (owner decision, T26, 2026-11-16).
+    for w in C.REPEAT_WINDOWS:
+        eligible = t[f"repeat_{w}d_eligible"].astype(bool)
+        e = t[eligible]
+        gmv, repeat = e[f"repeat_{w}d_gmv"], e[f"repeat_{w}d"].astype(bool)
+        assert gmv.notna().all() and (gmv >= 0).all()
+        assert not ((gmv > 0) & ~repeat).any()
+        assert int((repeat & (gmv == 0)).sum()) == KNOWN_REPEATS_WITHOUT_ITEMS
+        assert t.loc[~eligible, f"repeat_{w}d_gmv"].isna().all()
 
 
 def test_headline_rows_follow_adr_0005(t):

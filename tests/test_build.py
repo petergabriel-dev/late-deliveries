@@ -37,7 +37,8 @@ def make_raw():
     items = _df(
         ["order_id", "order_item_id", "product_id", "seller_id", "price", "freight_value"],
         [(oid, 1, "p1", "s1", 50.0, 10.0) for oid in orders["order_id"]]
-        + [("e1", 2, "p2", "s2", 80.0, 12.0), ("a1", 2, "p2", "s1", 90.0, 5.0), ("b1", 2, "p3", "s1", 70.0, 5.0)],
+        + [("e1", 2, "p2", "s2", 80.0, 12.0), ("a1", 2, "p2", "s1", 90.0, 5.0), ("b1", 2, "p3", "s1", 70.0, 5.0),
+           ("c2", 2, "p1", "s1", 30.0, 3.0)],  # c2 = 80, unlike c1 = 50, so repeat GMV must use c2's items
     )
     products = _df(["product_id", "product_category_name"],
                    [("p1", "cama_mesa_banho"), ("p2", "pc_gamer"), ("p3", None)])
@@ -99,6 +100,20 @@ def test_order_after_delivery_is_a_repeat(t):
 
 def test_followup_eligibility_cap(t):
     assert not t.loc["d1", "repeat_90d_eligible"] and pd.isna(t.loc["d1", "repeat_90d"])
+
+
+def test_review_answer_ts_from_kept_review(t):
+    assert t.loc["a1", "review_answer_ts"] == pd.Timestamp("2017-03-12 10:00:00")  # latest-answered (r2), not r1
+    assert t.loc["b2", "review_answer_ts"] == pd.Timestamp("2017-04-17 10:00:00")  # shared review_id, own row
+    assert pd.isna(t.loc["c1", "review_answer_ts"])
+
+
+def test_repeat_gmv_follows_repeat_rule(t):
+    assert t.loc["c1", "repeat_90d_gmv"] == 80.0 and t.loc["c1", "repeat_180d_gmv"] == 80.0  # c2's items
+    assert t.loc["a1", "repeat_90d_gmv"] == 0.0  # same-session order is not a repeat
+    assert t.loc["b1", "repeat_90d_gmv"] == 0.0  # order placed in transit is not a repeat
+    assert pd.isna(t.loc["d1", "repeat_90d_gmv"])  # follow-up past the cap
+    assert pd.isna(t.loc["c2", "repeat_90d_gmv"])  # not a first order
 
 
 def test_first_order_is_earliest_anywhere(t):
