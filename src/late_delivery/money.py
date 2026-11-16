@@ -14,17 +14,25 @@ disruption scenario re-fits the bin effects on the check-10 sample (ADR-0013 §7
 
 Inputs come only from assumptions.toml and code output (fe.json, orders.parquet): invariant 6.
 The Phase 3 masks are reused from robustness.py, never copied.
+
+Writes outputs/money.json, outputs/money.md and outputs/fig_money_tornado.png (`make money`).
 """
 
+import json
 import math
 import tomllib
 
-import numpy as np
-import pandas as pd
+import matplotlib
 
-from late_delivery import config as C
-from late_delivery.fe import LATE_BIN_COLS, fit
-from late_delivery.robustness import check_frames, headline_from
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+
+from late_delivery import config as C  # noqa: E402
+from late_delivery.diagnostics import GRID, INK, INK_2, SERIES, SURFACE, _style, md_table, rounded  # noqa: E402
+from late_delivery.fe import LATE_BIN_COLS, fit  # noqa: E402
+from late_delivery.robustness import check_frames, headline_from  # noqa: E402
 
 ENDS = ("low", "central", "high")
 ASSUMED_INPUTS = ("epsilon", "take_rate", "horizon_days", "contacts_per_late_order", "cost_per_contact")
@@ -118,6 +126,19 @@ def harm_ends(e: dict) -> dict:
 
 def assumed_ends(v: dict) -> dict:
     return {"low": v["low"], "central": v["value"], "high": v["high"]}
+
+
+def inputs_echo(a: dict) -> dict:
+    """Every input as the JSON reports it: assumed values with status and citations, measured refs."""
+    out = {}
+    for name, v in a["inputs"].items():
+        if v["tag"] == "assumed":
+            out[name] = {"tag": "assumed", "status": "illustrative" if v.get("illustrative") else "sourced",
+                         "unit": v["unit"], "low": v["low"], "value": v["value"], "high": v["high"],
+                         "sources": [{"citation": s["citation"], "url": s["url"]} for s in v.get("sources", [])]}
+        else:
+            out[name] = {"tag": "measured", "ref": v["ref"], "terms": v.get("terms", [])}
+    return out
 
 
 def fx_rate(a: dict) -> float:
@@ -414,6 +435,7 @@ def build(t: pd.DataFrame, fe_json: dict, a: dict, frame10: pd.DataFrame | None 
             "window_months": window_months(),
         },
         "fx": {"brl_per_usd": rate, "months": len(a["fx"]["monthly"]), "series": a["fx"]["series"]},
+        "inputs": inputs_echo(a),
         "measured": {
             "repeat_effect_90d": harm_ends(measured["repeat_effect_90d"]["late"]),
             "repeat_effect_180d": harm_ends(measured["repeat_effect_180d"]["late"]),
@@ -450,3 +472,163 @@ def build(t: pd.DataFrame, fe_json: dict, a: dict, frame10: pd.DataFrame | None 
             "note": "This dataset's volume, which may not be Olist's full volume: illustrative.",
         },
     }
+
+
+# --- Report, figure, entry point (T28) --------------------------------------------------------------
+
+def _money(x: float) -> str:
+    return f"{x:,.2f}"
+
+
+def _case_rows(cases: dict) -> list[dict]:
+    return [{"case": e, "channel_1_brl": _money(c["brl"]["channel1_revenue"]),
+             "channel_2_brl": _money(c["brl"]["channel2_revenue"]), "total_brl": _money(c["brl"]["total_revenue"]),
+             "total_usd": _money(c["usd"]["total_revenue"]), "lost_gmv_brl": _money(c["brl"]["total_gmv"])}
+            for e, c in cases.items()]
+
+
+def _flag_value(f: dict) -> str:
+    v = f["value"]
+    if f["id"] == 1:
+        return f"channel 1 share {v:.1%}"
+    if f["id"] == 2:
+        return "largest swing: " + ", ".join(v)
+    return f"scenario central R$ {_money(v)}"
+
+
+def _exposure_rows(exposure: dict) -> list[dict]:
+    return [{"H_days": H, **{f"E_{b}": _money(e["by_bin"][b]) for b in LATE_BIN_COLS},
+             "eligible": ", ".join(f"{e['eligible'][b]:,}" for b in LATE_BIN_COLS)} for H, e in exposure.items()]
+
+
+def to_markdown(d: dict) -> str:
+    rate, lo, s = d["fx"]["brl_per_usd"], d["late_orders"], d["scenario"]
+    yes = {True: "**fired**", False: "not fired"}
+    flags = [{"flag": f["id"], "test": f["test"], "rule": f["rule"], "value": _flag_value(f), "fired": yes[f["fired"]]}
+             for f in d["flags"]]
+    tornado = [{"input": r["input"], "status": "illustrative" if r["illustrative"] else "sourced or measured",
+                "low_brl": _money(r["low_revenue"]), "high_brl": _money(r["high_revenue"]), "swing_brl": _money(r["swing"])}
+               for r in d["tornado"]]
+    assumed = [{"input": k, "status": v["status"], "low": f"{v['low']:g}", "value": f"{v['value']:g}",
+                "high": f"{v['high']:g}", "unit": v["unit"],
+                "sources": "; ".join(x["citation"] for x in v["sources"]) or "none (illustrative)"}
+               for k, v in d["inputs"].items() if v["tag"] == "assumed"]
+    m = d["measured"]
+    ends = lambda e: f"{e['low']:.6f} / {e['central']:.6f} / {e['high']:.6f}"  # noqa: E731
+    measured = ([{"input": "repeat effect 90 days, abs()", "low / central / high": ends(m["repeat_effect_90d"])},
+                 {"input": "repeat effect 180 days, abs()", "low / central / high": ends(m["repeat_effect_180d"])}]
+                + [{"input": f"star drop {b} (stars)", "low / central / high": ends(m["star_drop"][b])} for b in LATE_BIN_COLS])
+    mix = [{"bin": b, "late_with_review": f"{lo['counts'][b]:,}", "mix": f"{lo['mix'][b]:.4f}",
+            "check10_late_with_review": f"{s['late_orders']['counts'][b]:,}", "check10_mix": f"{s['late_orders']['mix'][b]:.4f}"}
+           for b in LATE_BIN_COLS]
+    fits = [{"model": k, "term": t, "estimate": f"{e['estimate']:.4f}", "ci95_low": f"{e['ci95_low']:.4f}",
+             "ci95_high": f"{e['ci95_high']:.4f}", "n_obs": f"{v['n_obs']:,}"}
+            for k, v in s["fits"].items() if k.endswith("/b") for t, e in v["estimates"].items()]
+    a10 = s["fits"]["low_review/a"]
+    md, r = d["mix_decomposition"], d["recommendation"]
+    be = r["break_even_per_late_delivery"]
+    ann, c3 = d["annual_illustration"], d["channel3_addon"]
+    return "\n\n".join([
+        "# Phase 4 money translation: what one late delivery costs",
+        "Generated by `make money` from `orders.parquet`, `fe.json` and `assumptions.toml`. Every formula, input and "
+        "flag rule was fixed in ADR-0013 before this run; flags are computed by code. Figures are per late headline "
+        f"order ({lo['late_orders']:,} late orders, {lo['late_with_review']:,} with a review), as platform revenue "
+        f"(lost GMV x take rate). USD at R$ {rate:.4f} per US$ (mean of {d['fx']['months']} monthly BCB PTAX averages, "
+        "2017-01 to 2018-08). The range is bounds (every input at its low-cost or high-cost end), not a confidence interval.",
+        "## Cost per late delivery",
+        md_table(_case_rows(d["cases"])),
+        "Channel 1 (lost repeat purchases) is measured but an upper bound: its 90-day effect's CI includes 0 (ADR-0004). "
+        "Channel 2 (rating spillover) rests on the assumed ε and horizon; the star drop, the sellers' later sales and "
+        "review counts are measured (ADR-0013 §3).",
+        "## Operating costs: illustrative add-on, outside the range",
+        md_table([{"case": e, "brl": _money(v["brl"]), "usd": _money(v["usd"])} for e, v in c3.items()]),
+        "Support contacts per late order (no source) x cost per contact (CIP study, illustrative). A direct cost, "
+        "not multiplied by the take rate; never part of the range, the tornado or flags 1-2 (ADR-0013 §4).",
+        "## Flags (ADR-0013 §6)",
+        md_table(flags),
+        "## Tornado: one input at a time from the central case",
+        md_table(tornado),
+        "Figure: `fig_money_tornado.png`. The 180-day row swaps both the repeat effect and the value per lost repeat.",
+        "## Disruption scenario (sensitivity; ADR-0012, ADR-0013 §7)",
+        f"Check-10 sample (Feb-Mar 2018 surge and May 2018 strike excluded): {s['late_orders']['late_orders']:,} late "
+        f"orders, {s['late_orders']['late_with_review']:,} with a review. Model (a) on this sample: {a10['estimate']:.4f}, "
+        f"95% CI [{a10['ci95_low']:.4f}, {a10['ci95_high']:.4f}], N {a10['n_obs']:,}.",
+        md_table(_case_rows(s["cases"])),
+        "Bin effects re-fit on the check-10 sample (model (b); star drop uses `review_score`):",
+        md_table(fits),
+        "## Lateness-mix decomposition (ADR-0012, now from code)",
+        md_table([{"headline_mix_weighted": f"{md['headline_mix_weighted']:.4f}",
+                   "check10_mix_weighted": f"{md['check10_mix_weighted']:.4f}",
+                   "predicted_drop": f"{md['predicted_drop']:.4f}", "observed_drop": f"{md['observed_drop']:.4f}",
+                   "explained_share": "-" if md["explained_share"] is None else f"{md['explained_share']:.1%}"}]),
+        "Phase 2 `low_review/b` bin effects weighted by each sample's mix of late orders with a review. Observed drop "
+        "= headline minus the check-10 model (a) estimate.",
+        "## Recommendation numbers",
+        f"- Break-even per late delivery avoided (platform revenue): R$ {_money(be['low']['brl'])} / "
+        f"{_money(be['central']['brl'])} / {_money(be['high']['brl'])} (US$ {_money(be['low']['usd'])} / "
+        f"{_money(be['central']['usd'])} / {_money(be['high']['usd'])}), low / central / high.\n"
+        f"- Broken-promise-equivalent days: {r['broken_promise_equivalent_days']:.1f} (`low_review/c`: the broken-promise "
+        "effect over the effect of one extra delivery day; ratio of point estimates, no CI).\n"
+        f"- Caveat: {r['caveat']}",
+        "## Inputs",
+        "Assumed (`assumptions.toml`):",
+        md_table(assumed),
+        "Measured (from `fe.json`; cost ends from 95% CIs, clamped at 0):",
+        md_table(measured),
+        f"Value per lost repeat: R$ {_money(m['repeat_value_90d'])} at 90 days ({m['repeaters_90d']:,} repeaters), "
+        f"R$ {_money(m['repeat_value_180d'])} at 180 days ({m['repeaters_180d']:,}). Review share of late orders: "
+        f"{lo['review_share']:.4f}. Largest loss fraction any case implies: {d['max_loss_fraction']:.4f}.",
+        md_table(mix),
+        "Seller exposure E_b (mean sum of price / visible reviews over the seller's later orders in the horizon) and "
+        "eligible late orders per bin (1-2, 3-7, 8-14, 15+):",
+        md_table(_exposure_rows(d["exposure"])),
+        "## Annual illustration",
+        f"{ann['late_orders']:,} late orders over {d['spec']['window_months']} months = {ann['late_orders_per_year']:,.0f} "
+        f"a year; x the central cost = R$ {ann['central_revenue_brl']:,.0f} (US$ {ann['central_revenue_usd']:,.0f}) a year. "
+        f"{ann['note']}",
+        "## Specification echo",
+        "\n".join(f"- {k}: {v}" for k, v in d["spec"].items()),
+    ]) + "\n"
+
+
+def plot(d: dict, path) -> None:
+    rows = d["tornado"][::-1]  # largest swing on top
+    central = d["cases"]["central"]["brl"]["total_revenue"]
+    fig, ax = plt.subplots(figsize=(10, 4.8), facecolor=SURFACE)
+    for y, r in enumerate(rows):
+        ax.barh(y, r["high_revenue"] - r["low_revenue"], left=r["low_revenue"], height=0.55, color=SERIES,
+                alpha=0.45 if r["illustrative"] else 1.0, hatch="//" if r["illustrative"] else None, edgecolor=SERIES)
+        ax.annotate(f"{r['low_revenue']:.2f} to {r['high_revenue']:.2f}", (max(r["high_revenue"], central), y),
+                    xytext=(6, 0), textcoords="offset points", va="center", color=INK_2, fontsize=9)
+    ax.axvline(central, color=INK, linewidth=1)
+    ax.annotate(f"central R$ {central:.2f}", (central, len(rows) - 0.4), xytext=(4, 0), textcoords="offset points",
+                color=INK, fontsize=9)
+    labels = [r["input"] + (" (illustrative)" if r["illustrative"] else "") for r in rows]
+    ax.set_yticks(range(len(rows)), labels, color=INK)
+    ax.set_title("What drives the cost per late delivery\nPlatform revenue per late order, R$, one input moved at a time",
+                 loc="left", color=INK, fontsize=11)
+    ax.set_ylim(-0.6, len(rows))
+    _style(ax)
+    ax.grid(axis="y", visible=False)
+    ax.grid(axis="x", color=GRID, linewidth=0.8)
+    ax.tick_params(axis="y", colors=INK, labelsize=9)
+    fig.tight_layout()
+    fig.savefig(path, dpi=150, metadata={"Software": None})
+    plt.close(fig)
+
+
+def main() -> None:
+    fe_json = json.loads((C.OUTPUTS_DIR / "fe.json").read_text())
+    result = rounded(build(pd.read_parquet(C.ORDERS_PARQUET), fe_json, load_assumptions()))
+    (C.OUTPUTS_DIR / "money.json").write_text(json.dumps(result, indent=2) + "\n")
+    (C.OUTPUTS_DIR / "money.md").write_text(to_markdown(result))
+    plot(result, C.OUTPUTS_DIR / "fig_money_tornado.png")
+    c = result["cases"]
+    print("Cost per late delivery (platform revenue, R$): " + " / ".join(
+        _money(c[e]["brl"]["total_revenue"]) for e in ENDS) + " (low / central / high)")
+    print("Flags fired: " + (", ".join(f"flag {i}" for i in result["flags_fired"]) or "none"))
+    print(f"Wrote {C.OUTPUTS_DIR / 'money.md'}")
+
+
+if __name__ == "__main__":
+    main()

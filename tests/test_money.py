@@ -5,6 +5,7 @@ that it validates and to feed the end-to-end run's assumed inputs.
 """
 
 import copy
+import json
 
 import numpy as np
 import pandas as pd
@@ -243,7 +244,7 @@ def money_orders(n: int = 20_000) -> pd.DataFrame:
     return t
 
 
-def test_build_end_to_end_synthetic():
+def test_build_end_to_end_synthetic(tmp_path):
     t = money_orders()
     f = analysis_frame(t)
     h = fit(f[f["has_review"]], "low_review", ["late"])["estimates"][0]
@@ -272,3 +273,12 @@ def test_build_end_to_end_synthetic():
     assert [be[e]["brl"] for e in M.ENDS] == rev
     a = d["annual_illustration"]
     assert a["central_revenue_brl"] == pytest.approx(rev[1] * a["late_orders"] / 20 * 12)
+    assert d["inputs"]["horizon_days"]["status"] == "illustrative" and d["inputs"]["epsilon"]["status"] == "sourced"
+    # Report, JSON and figure render from the same rounded result.
+    r = M.rounded(d)
+    assert json.loads(json.dumps(r)) == r
+    md = M.to_markdown(r)
+    assert md.count("\n| ") > 30 and f"{r['cases']['central']['brl']['total_revenue']:,.2f}" in md
+    assert all(f"| {f['id']} |" in md for f in r["flags"])
+    M.plot(r, tmp_path / "fig.png")
+    assert (tmp_path / "fig.png").stat().st_size > 0
