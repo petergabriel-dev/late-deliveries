@@ -430,3 +430,101 @@ def test_sensitivity_guards():
         R.group_partial_r2(1.0, 2.0)
     with pytest.raises(ValueError, match="not a control"):
         R.fit_iid(analysis_frame(make_orders(n=50)), "low_review", ["late"], drop=("seller_id",))
+
+
+# --- Phase 3 checks (ADR-0011): samples, masks and flags, on synthetic data only ---------------------
+
+def test_check1_and_check2_relabels():
+    f = pd.DataFrame({"days_late": [-1.0, 0.0, 1.0, 2.0, 5.0]})
+    assert R.check1_frame(f)["late"].tolist() == [0.0, 0.0, 0.0, 1.0, 1.0]  # day +1 counts as on time
+    g = pd.DataFrame({"seller_state": ["A", "A", "A", "B", "B", "B", "A"],
+                      "customer_state": ["X", "X", "X", "X", "X", "X", "Y"],
+                      "delivery_days": [5.0, 5.0, 5.0, 1.0, 2.0, 3.0, 4.0]})
+    assert R.check2_frame(g)["late"].tolist() == [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]  # ties are not late
+
+
+def test_check_masks_edges():
+    days = pd.to_datetime(["2017-11-23", "2017-11-24", "2017-11-30", "2017-12-01",
+                           "2018-01-31", "2018-02-01", "2018-03-31", "2018-04-01"])
+    f = pd.DataFrame({"purchase_date": days})
+    assert R._window(f, C.BLACK_FRIDAY_WEEK_2017).tolist() == [False, True, True, False, False, False, False, False]
+    assert R._window(f, C.SURGE_2018).tolist() == [False, False, False, False, False, True, True, False]
+    s = pd.DataFrame({"purchase_date": pd.to_datetime(["2018-05-01", "2018-05-01", "2018-06-02", "2018-06-03"]),
+                      "promised_days": [20.0, 19.0, 10.0, 10.0]})  # promised 05-21, 05-20, 06-12, 06-13
+    assert R.strike_mask(s).tolist() == [True, False, True, False]
+    with pytest.raises(ValueError, match="drops no rows"):
+        R.drop_rows(s, pd.Series(False, index=s.index), "empty mask")
+
+
+def test_flag_rules_fire_and_hold():
+    h = {"estimate": 0.5, "ci95_low": 0.49, "ci95_high": 0.51}
+    fl = lambda cid, r: R.flag(cid, r, h, -0.117)  # noqa: E731
+    for cid in R.SAMPLE_CHECKS:
+        assert [fl(cid, {"estimate": e}) for e in (0.49, 0.51, 0.4899, 0.5101)] == [False, False, True, True]
+    assert [fl(1, {"estimate": e}) for e in (0.5, 0.4999, 0.7)] == [False, True, False]
+    assert [fl(2, {"estimate": e}) for e in (0.0, -0.1, 0.01)] == [True, True, False]
+    assert [fl(8, {"estimate": e}) for e in (0.0, 0.5, 0.6, 0.2)] == [True, True, True, False]
+    assert fl(4, {"placebos": [{"estimate": 0.05}, {"estimate": 0.117}]})  # >= abs(main), sign ignored
+    assert not fl(4, {"placebos": [{"estimate": 0.05}, {"estimate": -0.1169}]})
+    ci = lambda lo, hi: {"ci95_low": lo, "ci95_high": hi}  # noqa: E731
+    assert not fl(5, {"covariates": [ci(0.0, 0.1), ci(-0.2, 0.1)]})  # touching 0 still includes it
+    assert fl(5, {"covariates": [ci(-0.1, 0.1), ci(0.001, 0.1)]})
+    bm = lambda k1, k2: {"bounds": [{"k": 1, **k1}, {"k": 2, **k2}]}  # noqa: E731
+    assert not fl(6, {"benchmarks": [bm(ci(0.1, 0.2), ci(-0.1, 0.2)), bm(ci(0.0001, 0.3), ci(-1, 1))]})
+    assert fl(6, {"benchmarks": [bm(ci(0.1, 0.2), ci(0.1, 0.2)), bm(ci(0.0, 0.3), ci(0.1, 0.2))]})
+    assert fl(9, {"estimate": -0.1}) is None
+
+
+def test_phase2_inputs_are_required():
+    with pytest.raises(ValueError, match="headline"):
+        R.headline_from({})
+    with pytest.raises(ValueError, match="repeat_180d"):
+        R.repeat_180d_from({"models": [{"id": "repeat_90d/a"}]})
+    with pytest.raises(ValueError, match="main"):
+        R.rd_main_from({"estimates": [{"spec": "h = 5.5", "estimate": 0.1}]})
+
+
+def phase3_orders(n: int = 20_000, seed: int = 31) -> pd.DataFrame:
+    """make_orders plus purchase dates in every ADR-0011 window, multi-seller rows, repeat reviews."""
+    t = make_orders(n=n, seed=seed)  # planted effect 0.15 on every late order
+    i = np.arange(n)
+    dates = pd.to_datetime(["2017-01-20", "2017-06-15", "2017-11-26", "2018-02-15", "2018-05-25", "2018-07-10"])
+    t["purchase_ts"] = dates[i % len(dates)] + pd.Timedelta(hours=10)
+    t["n_reviews"] = np.where(i % 40 == 1, 2, 1)
+    t["review_created_before_delivery"] = pd.array(t["days_late"].to_numpy(dtype=float) >= 3, dtype="boolean")
+    multi = i % 50 == 0
+    t["in_headline"] = ~multi
+    t["exclusion_reason"] = pd.Series(np.where(multi, "multi_seller", None), dtype=object)
+    t.loc[multi, ["seller_id", "seller_state"]] = None
+    t.loc[multi, "distance_km"] = np.nan
+    return t
+
+
+def test_run_checks_end_to_end_synthetic():
+    t = phase3_orders()
+    f = analysis_frame(t)
+    h = fit(f[f["has_review"]], "low_review", ["late"])["estimates"][0]
+    fe_json = {"primary": {k: round(h[k], 6) for k in ("estimate", "ci95_low", "ci95_high")},
+               "models": [{"id": "repeat_180d/a", "n_obs": 100,
+                           "estimates": [{"term": "late", "estimate": -0.001, "ci95_low": -0.01, "ci95_high": 0.008}]}]}
+    out = R.run_checks(t, fe_json, {"estimates": [{"spec": "main", "estimate": 0.15}]})
+    by = {r["id"]: r for r in out}
+    assert list(by) == list(range(1, 13))
+    assert {r["class"] for r in out} == {"sample", "estimand", "diagnostic", "reference"}
+    assert all(isinstance(r["fired"], bool) for r in out if r["id"] != 9) and by[9]["fired"] is None
+    # Planted effect: check 3 drops Black Friday week and still recovers 0.15.
+    c3 = by[3]
+    assert c3["ci95_low"] <= 0.15 <= c3["ci95_high"] and abs(c3["estimate"] - 0.15) < 0.02
+    assert c3["rows_vs_headline"] < 0 and by[7]["rows_vs_headline"] > 0
+    for cid in (3, 10, 11, 12):  # every sample mask bites
+        assert by[cid]["n_sample"] < int(f["has_review"].sum())
+    assert by[1]["late_orders"] < int(f.loc[f["has_review"], "late"].sum())
+    assert [p["cutoff"] for p in by[4]["placebos"]] == [-6.5, 7.5]
+    assert all(p["ci95_low"] <= 0 <= p["ci95_high"] for p in by[4]["placebos"])  # no jump planted there
+    assert [c["covariate"] for c in by[5]["covariates"]] == list(C.CONTINUITY_COVARIATES)
+    s6 = by[6]
+    assert s6["estimate"] == pytest.approx(h["estimate"], abs=1e-12)
+    assert [b["benchmark"] for b in s6["benchmarks"]] == list(C.SENSITIVITY_BENCHMARKS)
+    assert all([x["k"] for x in b["bounds"]] == list(C.SENSITIVITY_K) for b in s6["benchmarks"])
+    assert 0 < s6["rv_q1_alpha05"] < s6["rv_q1"] < 1
+    assert by[9]["estimate"] == -0.001
