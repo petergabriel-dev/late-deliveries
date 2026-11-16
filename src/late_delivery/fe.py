@@ -59,13 +59,26 @@ def _float(s: pd.Series) -> np.ndarray:
     return s.astype("Float64").to_numpy(dtype=float, na_value=np.nan)
 
 
-def analysis_frame(t: pd.DataFrame) -> pd.DataFrame:
-    """Headline orders with the analysis-time controls and treatment bins (ADR-0008 §1-2)."""
-    h = t[t["in_headline"]].reset_index(drop=True)
+def analysis_frame(t: pd.DataFrame, include_multi_seller: bool = False) -> pd.DataFrame:
+    """Headline orders with the analysis-time controls and treatment bins (ADR-0008 §1-2).
+
+    include_multi_seller (ADR-0011 §3, check 7): also keep orders excluded only for having several
+    sellers; they share one pseudo seller (C.MULTI_SELLER_LABEL) and their missing distance follows
+    the usual cap/fill/flag rule. The median fill uses non-missing distances only, so it is unchanged.
+    Pass-through columns for Phase 3 masks: purchase_date, seller_state, review_created_before_delivery,
+    n_reviews.
+    """
+    keep = t["in_headline"].astype(bool)
+    if include_multi_seller:
+        keep = keep | t["exclusion_reason"].eq("multi_seller").fillna(False).astype(bool)
+    h = t[keep].reset_index(drop=True)
+    headline = h["in_headline"].astype(bool)
     dist = h["distance_km"].where(h["distance_km"] <= C.DISTANCE_CAP_KM)
     f = pd.DataFrame({
         "order_id": h["order_id"].astype(str),
-        "seller_id": h["seller_id"].astype(str),
+        "seller_id": h["seller_id"].where(headline, C.MULTI_SELLER_LABEL).astype(str),
+        "seller_state": h["seller_state"].where(headline, C.MULTI_SELLER_LABEL).astype(str),
+        "purchase_date": h["purchase_ts"].dt.normalize(),
         "purchase_week": h["purchase_week"].dt.strftime("%Y-%m-%d"),
         "main_category": h["main_category"].astype(str),
         "customer_state": h["customer_state"].astype(str),
@@ -80,6 +93,8 @@ def analysis_frame(t: pd.DataFrame) -> pd.DataFrame:
         "delivery_days": _float(h["delivery_days"]),
         "low_review": _float(h["low_review"]),
         "review_score": _float(h["review_score"]),
+        "review_created_before_delivery": _float(h["review_created_before_delivery"]),
+        "n_reviews": _float(h["n_reviews"]),
     })
     f["has_review"] = f["review_score"].notna()
     for k in STARS:

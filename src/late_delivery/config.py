@@ -45,3 +45,23 @@ RD_DONUT_DAYS = (0, 1)
 
 # ADR-0008 §4: matching caliper, in SDs of the logit propensity score.
 MATCH_CALIPER_SD = 0.2
+
+# ADR-0011 §2: check 1, late = at least this many days late (day +1 counts as on time).
+CHECK1_LATE_MIN_DAYS = 2
+# ADR-0011 §3: purchase windows dropped by checks 3 and 10, [start, end) on the purchase timestamp.
+BLACK_FRIDAY_WEEK_2017 = (pd.Timestamp("2017-11-24"), pd.Timestamp("2017-12-01"))  # check 3: 11-24..11-30
+SURGE_2018 = (pd.Timestamp("2018-02-01"), pd.Timestamp("2018-04-01"))  # check 10: Feb-Mar 2018
+# ADR-0011 §3: check 10, truckers' strike, first and last day inclusive (sources cited in ADR-0011).
+# An order is dropped if purchase date <= last day and promised date >= first day.
+STRIKE_2018 = (pd.Timestamp("2018-05-21"), pd.Timestamp("2018-06-02"))
+# ADR-0011 §3: check 11, purchases on or after this date.
+CHECK11_WINDOW_START = pd.Timestamp("2017-02-01")
+# ADR-0011 §3: check 7, seller_id and seller_state label shared by multi-seller orders.
+MULTI_SELLER_LABEL = "multi_seller"
+# ADR-0011 §4: check 4 placebo cutoffs, each with the two days straddling it dropped (donut).
+PLACEBO_CUTOFFS = ((-6.5, (-7, -6)), (7.5, (7, 8)))
+# ADR-0011 §4: check 5, covariates tested for continuity at the real cutoff (main RD spec).
+CONTINUITY_COVARIATES = ("log_price", "log_freight", "n_items", "distance_km", "promised_days")
+# ADR-0011 §5: check 6 benchmark groups (analysis-frame columns) and confounder strengths k (kd = ky = k).
+SENSITIVITY_BENCHMARKS = {"distance": ("distance_km", "distance_missing"), "customer_state": ("customer_state",)}
+SENSITIVITY_K = (1, 2, 3)

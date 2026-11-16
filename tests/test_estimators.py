@@ -46,6 +46,12 @@ def make_orders(n: int = 20_000, seed: int = 7, late_effect=None) -> pd.DataFram
         "review_score": pd.array(score, dtype="Int64"),
         "low_review": pd.array(low, dtype="boolean"),
         "is_first_order": True,
+        # Phase 3 pass-through columns: no rng draws, so earlier planted-effect tests see the same data.
+        "exclusion_reason": pd.Series([None] * n, dtype=object),
+        "seller_state": [f"st{s % 5}" for s in sellers],
+        "purchase_ts": week + pd.Timedelta(hours=10),
+        "review_created_before_delivery": pd.array(np.zeros(n, dtype=bool), dtype="boolean"),
+        "n_reviews": 1,
     })
     for w in C.REPEAT_WINDOWS:
         t[f"repeat_{w}d_eligible"] = True
@@ -71,6 +77,38 @@ def test_analysis_frame_transforms():
         assert row.loc[oid, "distance_km"] == kept.median()
     assert not row.loc["o000004", "has_review"] and np.isnan(row.loc["o000004", "star_1"])
     assert f["distance_missing"].sum() == 2
+
+
+def test_analysis_frame_multi_seller_option():
+    t = make_orders(n=12)
+    t.loc[2, "distance_km"] = np.nan  # a headline order with missing distance
+    for i in (3, 4):  # excluded only for having several sellers (ADR-0011 §3, check 7)
+        t.loc[i, ["in_headline", "exclusion_reason", "seller_id", "seller_state", "distance_km"]] = \
+            [False, "multi_seller", None, None, np.nan]
+    t.loc[5, ["in_headline", "exclusion_reason"]] = [False, "outside_window"]
+    base = analysis_frame(t)
+    multi = analysis_frame(t, include_multi_seller=True)
+    assert len(base) == 9 and len(multi) == 11
+    m = multi.set_index("order_id")
+    assert "o000005" not in m.index
+    for oid in ("o000003", "o000004"):
+        assert m.loc[oid, "seller_id"] == C.MULTI_SELLER_LABEL == m.loc[oid, "seller_state"]
+        assert m.loc[oid, "distance_missing"] == 1.0
+        assert m.loc[oid, "distance_km"] == m.loc["o000002", "distance_km"]  # same median fill as headline rows
+    assert multi[multi["seller_id"] != C.MULTI_SELLER_LABEL].reset_index(drop=True).equals(base)
+
+
+def test_analysis_frame_pass_through_columns():
+    t = make_orders(n=4)
+    t.loc[1, "n_reviews"] = 2
+    t.loc[2, "review_created_before_delivery"] = True
+    t.loc[3, "review_created_before_delivery"] = pd.NA
+    f = analysis_frame(t)
+    assert (f["purchase_date"] == t["purchase_ts"].dt.normalize()).all()
+    assert f["n_reviews"].tolist() == [1.0, 2.0, 1.0, 1.0]
+    assert f["review_created_before_delivery"].iloc[:3].tolist() == [0.0, 0.0, 1.0]
+    assert np.isnan(f["review_created_before_delivery"].iloc[3])
+    assert f["seller_state"].tolist() == t["seller_state"].tolist()
 
 
 def test_bin_edges():
@@ -152,6 +190,27 @@ def test_rd_window_and_donut_guards():
         assert d["days_late"].isin(C.RD_DONUT_DAYS).any() != s["donut"]
     with pytest.raises(ValueError, match="donut"):
         rd.estimate(rd.rd_sample(f, C.RD_BANDWIDTH, donut=False), C.RD_BANDWIDTH, donut=True)
+
+
+def test_rd_sample_placebo_windows():
+    days = np.arange(-20, 21, dtype=float)
+    f = pd.DataFrame({"days_late": np.repeat(days, 2), "has_review": True})
+    (left_c, left_donut), (right_c, right_donut) = C.PLACEBO_CUTOFFS
+    left = rd.rd_sample(f, C.RD_BANDWIDTH, True, cutoff=left_c, donut_days=left_donut)
+    right = rd.rd_sample(f, C.RD_BANDWIDTH, True, cutoff=right_c, donut_days=right_donut)
+    assert sorted(set(left["days_late"])) == [d for d in range(-13, 1) if d not in (-7, -6)]
+    assert sorted(set(right["days_late"])) == [d for d in range(1, 15) if d not in (7, 8)]
+
+
+def test_rd_estimate_covariate_outcome():
+    f = rd_frame(n=100_000, jump=0.0, seed=11)
+    rng = np.random.default_rng(12)
+    f["log_price"] = 1.0 + 0.01 * f["days_late"] + 0.30 * (f["days_late"] >= 1) + rng.normal(0, 0.5, len(f))
+    d = rd.rd_sample(f, C.RD_BANDWIDTH, True)
+    e = rd.estimate(d, C.RD_BANDWIDTH, True, outcome="log_price")
+    assert e["ci95_low"] <= 0.30 <= e["ci95_high"] and abs(e["estimate"] - 0.30) < 0.02
+    with pytest.raises(ValueError, match="log_freight missing"):
+        rd.estimate(d.assign(log_freight=np.nan), C.RD_BANDWIDTH, True, outcome="log_freight")
 
 
 def test_nearest_matches_rules():

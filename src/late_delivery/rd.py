@@ -37,25 +37,33 @@ SPECS = [
 ]
 
 
-def rd_sample(f: pd.DataFrame, bandwidth: float, donut: bool) -> pd.DataFrame:
-    """Headline orders with a review inside the window (|days_late - c| < h, positive kernel weight)."""
+def rd_sample(f: pd.DataFrame, bandwidth: float, donut: bool, cutoff: float = C.RD_CUTOFF,
+              donut_days=C.RD_DONUT_DAYS) -> pd.DataFrame:
+    """Headline orders with a review inside the window (|days_late - c| < h, positive kernel weight).
+
+    cutoff and donut_days default to the main RD; Phase 3 placebo cutoffs pass their own (ADR-0011 §4).
+    """
     d = f[f["has_review"]]
-    keep = (d["days_late"] - C.RD_CUTOFF).abs() < bandwidth
+    keep = (d["days_late"] - cutoff).abs() < bandwidth
     if donut:
-        keep = keep & ~d["days_late"].isin(C.RD_DONUT_DAYS)
+        keep = keep & ~d["days_late"].isin(donut_days)
     return d[keep]
 
 
-def estimate(d: pd.DataFrame, bandwidth: float, donut: bool) -> dict:
-    """Donut RD on a pre-restricted window sample; raises if the spec is not run as written."""
+def estimate(d: pd.DataFrame, bandwidth: float, donut: bool, cutoff: float = C.RD_CUTOFF,
+             donut_days=C.RD_DONUT_DAYS, outcome: str = "low_review") -> dict:
+    """Donut RD on a pre-restricted window sample; raises if the spec is not run as written.
+
+    Defaults are the main RD; Phase 3 placebo and covariate-continuity runs override them (ADR-0011 §4).
+    """
     x = d["days_late"].to_numpy(dtype=float)
-    if donut and np.isin(x, C.RD_DONUT_DAYS).any():
+    if donut and np.isin(x, donut_days).any():
         raise ValueError("donut days present in a donut RD sample")
-    if d["low_review"].isna().any():
-        raise ValueError("low_review missing inside the RD sample")
+    if d[outcome].isna().any():
+        raise ValueError(f"{outcome} missing inside the RD sample")
     clusters = pd.factorize(d["seller_id"], sort=True)[0]
     with contextlib.redirect_stdout(io.StringIO()):  # rdrobust prints a mass-point notice
-        r = rdrobust(d["low_review"].to_numpy(dtype=float), x, c=C.RD_CUTOFF, h=bandwidth, kernel="tri", p=1,
+        r = rdrobust(d[outcome].to_numpy(dtype=float), x, c=cutoff, h=bandwidth, kernel="tri", p=1,
                      vce="cr1", cluster=clusters, masspoints="adjust")
     used = r.bws.loc["h"].to_numpy(dtype=float)
     if not np.allclose(used, bandwidth):
@@ -63,7 +71,7 @@ def estimate(d: pd.DataFrame, bandwidth: float, donut: bool) -> dict:
     n_left, n_right = (int(v) for v in r.N)
     if [int(v) for v in r.N_h] != [n_left, n_right]:
         raise RuntimeError("observations outside the bandwidth reached rdrobust")
-    side = x > C.RD_CUTOFF
+    side = x > cutoff
     return {
         "estimate": float(r.coef.loc["Conventional"].iloc[0]),
         "ci95_low": float(r.ci.loc["Robust"].iloc[0]),
