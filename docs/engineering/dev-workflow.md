@@ -43,6 +43,79 @@ uv sync && make check-outputs
 
 Outputs and report templates are committed; `data/processed/` stays ignored. JSON and rendered Markdown were byte-identical across repeated same-machine runs. Cross-machine byte identity remains unverified; PNG bytes are excluded from the guard.
 
+## Phase 5 completion audit (T38)
+
+### Fresh-clone rebuild
+
+On **2026-11-16**, cloned committed `5e8f81e` into `/tmp/late-delivery-t38-9imdzh_q/repo` with `git clone --no-hardlinks`. No virtualenv or processed data was inherited. A separate writable copy of the existing uv dependency cache was prepared before timing; this is a same-machine, offline rebuild, not a test of downloading dependencies on another machine.
+
+With `UV_CACHE_DIR=/tmp/late-delivery-t38-9imdzh_q/uv-cache`, `MPLCONFIGDIR=/tmp/late-delivery-t38-9imdzh_q/mpl` and `UV_OFFLINE=1`, timed `uv sync && make check-outputs`: **86.86 s**, exit **0**, **107 tests passed**. Python was 3.12.9; uv was 0.11.0. The new environment included first-run test/compiler/font-cache work, so this is not the warm-build benchmark. Cache preparation and cloning are excluded from that duration. The clone's `config.ROOT` resolved inside the clone, Git status was clean, and processed data remained untracked. All **21 JSON/Markdown outputs and rendered documents** compared byte-identical with the source checkout; PNG bytes were not part of that comparison. The local command log remains at `/tmp/late-delivery-t38-9imdzh_q/rebuild.log` (temporary evidence).
+
+The original warm-build target was not met in T36: 30.65 s versus 30 s; the owner accepted that recorded deviation. The renderer-only budget and timing are described above. This audit does not turn the timing waiver into a claim that the original cap passed, nor establish cross-machine determinism. Owner prose approval preceded memo commit `5a9f6a8`, write-up commit `88dbc2f` and README commit `7417094`; T38 changes only the README's Phase 5 status. Independent peer review and publishing are separate, not claimed complete here.
+
+### Literal-digit inventory
+
+Manually audited all three `docs/report/*.template.md` files. Below, each row lists **every digit run outside placeholders on that source line**, in encounter order, retaining leading zeros and repeats. Source lines are stable across the status-only change. Identifiers include ADR/JC/phase/invariant labels and their filenames; parameters must be defined in the cited ADR. URL escapes are syntax, not reported numbers. No unjustified literal or hand-typed result found; no prose fix required. `memo.template.md` contains **no digits outside placeholders**.
+
+`docs/report/writeup.template.md`:
+
+| Line | Digit runs | Justification |
+|---|---|---|
+| 7 | `95` | Confidence level fixed in ADR-0007. |
+| 11 | `0014, 0014, 4` | ADR-0014 label/path and phase identifier in filename. |
+| 17 | `2018, 2018` | Surge/strike window years defined in ADR-0011. |
+| 25 | `0012, 0012, 3` | ADR-0012 label/path and phase identifier. |
+| 31 | `2017, 01, 01, 2018, 08, 31` | Purchase-window dates defined in ADR-0005. |
+| 37 | `0005, 0005` | ADR identifiers. |
+| 39 | `1, 5` | JC identifiers. |
+| 41 | `1` | JC identifier. |
+| 43 | `1, 2` | Low-review star definition, ADR-0004. |
+| 45 | `5, 90, 180` | JC identifier; repeat windows defined in ADR-0004. |
+| 49 | `90` | Repeat-window definition, ADR-0004. |
+| 51 | `0003, 0003, 0004, 0004` | ADR identifiers. |
+| 53 | `3` | JC identifier. |
+| 55 | `3` | JC identifier. |
+| 67 | `0007, 0007, 0008, 0008, 2, 0009, 0009` | ADR identifiers and phase identifier in filename. |
+| 69 | `4` | JC identifier. |
+| 71 | `4, 95` | JC identifier; confidence level defined in ADR-0007. |
+| 73 | `0, 1` | Cutoff/donut-day definitions, ADR-0003 and ADR-0007. |
+| 79 | `0010, 0010, 2, 0012, 0012, 3` | ADR identifiers and phase identifiers in filenames. |
+| 81 | `2` | JC identifier. |
+| 83 | `2` | JC identifier. |
+| 95 | `0011, 0011, 3, 0012, 0012, 3` | ADR identifiers and phase identifiers in filenames. |
+| 97 | `6` | JC identifier. |
+| 99 | `6` | JC identifier. |
+| 113 | `0006, 0006, 0013, 0013, 4, 0014, 0014, 4` | ADR identifiers and phase identifiers in filenames. |
+| 129 | `0002, 0002, 0015, 0015, 5` | ADR identifiers and phase identifier in filename. |
+
+`docs/report/README.template.md`:
+
+| Line | Digit runs | Justification |
+|---|---|---|
+| 20 | `1` | Phase identifier. |
+| 21 | `2` | Phase identifier. |
+| 22 | `3` | Phase identifier; check count is a placeholder, not a literal. |
+| 23 | `4` | Phase identifier. |
+| 24 | `5` | Phase identifier. |
+| 40 | `6, 0015, 0015, 5` | Invariant/ADR identifiers and phase identifier in filename. |
+| 59 | `1, 6, 0007, 0007, 0008, 0009, 0010, 0011, 0012, 0013, 0014, 0015, 0015, 5` | JC/ADR identifiers and phase identifier in filename. |
+| 69 | `20, 20, 20, 20, 20, 20, 20, 20` | `%20` encodes spaces in the brief's filename; no numerical claim. |
+| 75 | `4, 0, 4, 0` | CC BY-NC-SA version in license label and URL, as required by ADR-0002/ADR-0015. |
+
+### Brief definition of done
+
+All seven brief items checked, with version-controlled evidence paths:
+
+| Brief item | Evidence |
+|---|---|
+| Question and answer in README's first three lines | [README.md](../../README.md), lines 1–3. |
+| Identification methods compared; disagreement explained | [Method ladder](../report/writeup.md#method-ladder-jc-3), [reconciliation](../report/writeup.md#reconciling-disagreement-jc-4), [full ladder](../../outputs/ladder.md). |
+| Limitations near the top | Second write-up section: [limitations](../report/writeup.md#limitations); also near the top of [README.md](../../README.md). |
+| Every memo number traces to code | [Memo template](../report/memo.template.md), [renderer/derived calculations](../../src/late_delivery/report.py), [money JSON](../../outputs/money.json), [assumptions](../../assumptions.toml). All placeholders resolved; literal inventory above. |
+| Decision log covers JC 1–6 | [Decision index](decisions/README.md), including ADR-0003 (JC 1), ADR-0007 (JC 2/3/4), ADR-0004 (JC 5), ADR-0006 (JC 6), plus later implementation and reading records. |
+| One-command rebuild from a fresh clone | [Makefile](../../Makefile), `uv sync && make check-outputs`; successful fresh-clone run and conditions recorded above. |
+| Memo ends with a recommendation | Last section of [memo](../report/memo.md#recommendation): break-even, promise-first and test longer promises. |
+
 ## Dependencies
 
 | Package | Used by |

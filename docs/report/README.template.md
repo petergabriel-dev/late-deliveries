@@ -21,7 +21,7 @@ See the [full limitations and evidence](docs/report/writeup.md#limitations) befo
 | 2 Identification: fixed-effects regression, donut RD and matching | Done |
 | 3 Robustness: {report:writeup_checks_count} pre-registered checks | Done |
 | 4 Business translation: cost range and recommendation | Done |
-| 5 Communication: rendered reports, repo polish and rebuild audit | In progress |
+| 5 Communication: rendered reports, repo polish and rebuild audit | Done |
 
 ## Reproduce
 
