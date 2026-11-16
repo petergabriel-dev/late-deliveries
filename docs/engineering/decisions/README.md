@@ -16,3 +16,4 @@
 | ADR-0012 | Active | Phase 3 robustness reading - headline holds except on disruption periods; RD continuity fails (JC 2, 4) | Reporting or interpreting the Phase 3 robustness checks, or planning the Phase 4 money translation |
 | ADR-0013 | Active | Phase 4 implementation choices - money formulas, inputs and flag rules fixed before any money figure (JC 6) | Implementing, running, or interpreting the Phase 4 money translation, its inputs, its flags, or the disruption scenario |
 | ADR-0014 | Active | Phase 4 money reading - about R$2 per late delivery, almost all assumption-driven; the review horizon drives the range (JC 6) | Reporting or interpreting the Phase 4 money figures, or writing the Phase 5 memo and write-up |
+| ADR-0015 | Active | Phase 5 communication - rendered reports, committed outputs and a staleness guard | Editing the memo, write-up or README, changing report rendering, or rebuilding and publishing generated outputs |
