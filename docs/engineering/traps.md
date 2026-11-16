@@ -21,6 +21,8 @@ Known gotchas in the Olist data and this pipeline. Counts are from the committed
 - **Zero freight.** 336 headline orders have freight 0, where `log` is undefined; price and freight enter the models as `log1p` (ADR-0008).
 - **`delivery_days` is fractional.** It is elapsed time from purchase to delivery (0.53 to 209.6 days), so bins are half-open, [lo, hi): "8-14" means 8 <= days < 15.
 - **Groups with no late orders.** Among headline orders with a review, purchase week 2018-08-27 and 7 rare categories have no late orders (211 orders in all). Their dummies perfectly predict "on time", so the propensity logit does not converge with them; matching drops those orders first (ADR-0009).
+- **Repeat orders with no items.** In each repeat window, 4 eligible first orders (different people at 90 and 180 days) repeat only through canceled or unavailable orders that have no items: `repeat_{w}d` is true but `repeat_{w}d_gmv` is 0. Pinned in `test_data_quality.py` (ADR-0013 §10).
+- **The money horizon runs off the data.** Channel 2 counts a late order only if its review answer time + H falls before 2018-09-01: 5,803 of the 6,366 late orders with a review qualify at H = 30 days, 5,329 at 90 and 2,760 at 180. Long horizons keep mostly 2017 orders, so the period mix changes with H (ADR-0013 §3, ADR-0014).
 
 ## Tooling
 
@@ -33,3 +35,5 @@ Known gotchas in the Olist data and this pipeline. Counts are from the committed
 - **sensemakr reference values.** Its Darfur test file (`tests/testthat/test-02-darfur.R`, v0.1.6) checks some values with `tolerance = 1e5`, which binds nothing; use the lines with 1e-5. It does not state the `female` benchmark's partial R² values; `test_estimators.py` recovers them by inverting the published 1x bound.
 - **Per-level balance flag.** Matching balance is checked for every category and state level, so a rare level can exceed abs(SMD) 0.1 by chance (none did: max 0.0511).
 - **Filenames with spaces.** The project brief's filename has spaces; use `-z`/`-0` when piping git file lists to `xargs`.
+- **BCB series metadata.** The SGS metadata page (www3.bcb.gov.br) rejects scripted requests, and series 3698 is not in the open-data catalog. To verify the monthly PTAX averages in `assumptions.toml`, recompute them from daily series 1 (api.bcb.gov.br JSON) and read series 1's notes through the dadosabertos.bcb.gov.br CKAN API.
+- **Sandboxed runs.** Where `~/.cache` is not writable (e.g. a sandboxed agent session), `uv run` cannot initialize its cache and `make` fails. Set `UV_CACHE_DIR` and `MPLCONFIGDIR` to a writable directory, plus `UV_OFFLINE=1`, before running `make`.

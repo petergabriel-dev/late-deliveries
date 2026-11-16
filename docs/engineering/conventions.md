@@ -3,7 +3,7 @@
 ## Layout
 
 - Package code in `src/late_delivery/` (uv_build backend); one module per pipeline step, each with a `main()` run as `python -m late_delivery.<module>`.
-- Tests in `tests/`: `test_build.py` (definitions on small synthetic fixtures), `test_data_quality.py` (real data, pinned counts), `test_estimators.py` (Phase 2 and Phase 3 estimators on synthetic data with planted effects, the ladder's and robustness checks' flag logic, and the sensitivity formulas against sensemakr's published Darfur values and statsmodels). Estimator tests check that the known effect lies inside the 95% CI and within 0.02; tests of several coefficients at once use a joint band (|z| < 3.3 each).
+- Tests in `tests/`: `test_build.py` (definitions on small synthetic fixtures), `test_data_quality.py` (real data, pinned counts), `test_estimators.py` (Phase 2 and Phase 3 estimators on synthetic data with planted effects, the ladder's and robustness checks' flag logic, and the sensitivity formulas against sensemakr's published Darfur values and statsmodels), `test_money.py` (Phase 4 money on synthetic data: hand-computed seller exposures, assumptions-file guards, flag rules on both sides of their thresholds, an end-to-end synthetic run). Estimator tests check that the known effect lies inside the 95% CI and within 0.02; tests of several coefficients at once use a joint band (|z| < 3.3 each).
 - Generated files go to `data/processed/` and `outputs/`, both gitignored. Never commit generated output.
 
 ## Parameters and definitions
@@ -12,6 +12,7 @@
 - Treatment, outcome and sample definitions live only in `build.py` and must match ADR-0003..0005 (invariant 4). Changing one needs a superseding ADR first.
 - Analysis-time transforms (log1p price and freight, distance cap and fill, treatment bins; ADR-0008 §1-2) live only in `fe.analysis_frame()`, which every estimator reuses.
 - Phase 3 robustness variants (the check 1 and 2 relabels, date and review masks, the multi-seller frame) live only in `robustness.py` (ADR-0011 §6). `fe.analysis_frame()` adds only the `include_multi_seller` option and pass-through columns; new parameters on shared functions default to the Phase 2 behavior, and Phase 2 outputs must stay byte-identical.
+- Every money input lives in `assumptions.toml` (ADR-0013 §8). Assumed inputs carry value, low, high, unit and either a source (citation, URL, verbatim quote, date opened) or `illustrative = true`. Measured inputs appear only as a `ref` to `fe.json` or `orders.parquet` columns; their numbers are never copied into the file. `money.py` reuses `robustness.check_frames`, `fe.fit` and `fe.LATE_BIN_COLS` and copies no mask.
 
 ## Code style
 
@@ -20,7 +21,7 @@
 - Parse timestamps with the strict format `%Y-%m-%d %H:%M:%S`, so a malformed value raises instead of becoming missing.
 - pandas 3 semantics: no chained assignment; use `Series.dt.day_of_week`, not the deprecated `dt.weekday`.
 - Nullable dtypes (`Int64`, `boolean`) for columns that are legitimately missing (e.g., `days_late` for undelivered orders).
-- Fail loudly on broken assumptions: `build.py` raises if a join changes the row count or the exclusion counts don't reconcile. Estimators raise instead of silently degrading: a term of interest dropped as collinear, donut days in a donut sample, a bandwidth other than the one requested, a non-converged logit, a cross-week or over-caliper match, a Phase 3 mask that drops no rows, a placebo window that crosses the real cutoff, plain-OLS and clustered fits that keep different rows.
+- Fail loudly on broken assumptions: `build.py` raises if a join changes the row count or the exclusion counts don't reconcile. Estimators raise instead of silently degrading: a term of interest dropped as collinear, donut days in a donut sample, a bandwidth other than the one requested, a non-converged logit, a cross-week or over-caliper match, a Phase 3 mask that drops no rows, a placebo window that crosses the real cutoff, plain-OLS and clustered fits that keep different rows, an assumed money input with neither a source nor `illustrative = true`, a measured input that copies a number, a ref that does not resolve, a channel 2 loss fraction above 1, a days-late bin with no eligible late order.
 - Cast nullable columns to float64 with NaN before handing them to pyfixest or statsmodels (`fe._float`).
 - Build row masks as pandas Series (`mask = mask & cond`); under copy-on-write, `Series.to_numpy()` can return a read-only view, so `mask &= ...` on it fails.
 - Mark deliberate shortcuts with a `ponytail:` comment stating the limitation.
@@ -29,7 +30,7 @@
 
 - Deterministic: floats rounded to 6 decimals in JSON, stable sort orders, no timestamps in output files.
 - Every reported number is computed in code; markdown reports interpolate values from the same result dict as the JSON.
-- Each estimator writes `outputs/<module>.{md,json}`. The JSON echoes its own specification (sample, N after drops and why, clusters, bandwidth or caliper, unmatched counts), so a reviewer can audit it without reading code. Every estimate carries a role label: headline, secondary, corroborating, sensitivity or biased baseline.
+- Each estimator writes `outputs/<module>.{md,json}`. The JSON echoes its own specification (sample, N after drops and why, clusters, bandwidth or caliper, unmatched counts), so a reviewer can audit it without reading code. Every estimate carries a role label: headline, secondary, corroborating, sensitivity, illustrative add-on or biased baseline.
 - p-values below the JSON's precision show as `<1e-06` in markdown, not `0`. Write `abs(SMD)`, not `|SMD|`, inside markdown table cells.
 - Code that runs before ADR-0007 must not split `review_score`, `low_review`, `repeat_90d` or `repeat_180d` by `late`, `days_late` or `delivery_days` (invariant 3).
 
