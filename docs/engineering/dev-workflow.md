@@ -13,7 +13,7 @@ No credentials or downloads: the raw data is committed.
 | Command | What it does |
 |---|---|
 | `uv sync` | Create `.venv` with the exact versions in `uv.lock`, including the `late_delivery` package (editable). |
-| `make all` | Full rebuild: check-data → build → test → diagnostics → naive, fe, rd, matching → ladder. About 18 seconds once caches exist (measured 2026-11-13: 18.1 s with `outputs/` deleted, 18.0 s on a repeat run). The first run on a new machine is slower: it builds the matplotlib font cache and compiles pyfixest's numba code. |
+| `make all` | Full rebuild: check-data → build → test → diagnostics → naive, fe, rd, matching → ladder → robustness. About 23 seconds once caches exist (measured 2026-11-16: 22.5 s and 22.6 s with `outputs/` deleted). The first run on a new machine is slower: it builds the matplotlib font cache and compiles pyfixest's numba code. |
 | `make check-data` | Verify `data/raw/*.csv` against `data/raw/SHA256SUMS`. |
 | `make build` | Write `data/processed/orders.parquet` and `outputs/exclusions.json`. |
 | `make test` | Build, then run `pytest` (unit tests on fixtures, planted-effect estimator tests, data-quality tests on real data). |
@@ -23,6 +23,7 @@ No credentials or downloads: the raw data is committed.
 | `make rd` | Write `outputs/rd.{md,json}` and `fig_rd.png`: donut RD plus sensitivity runs (about 3 s). |
 | `make matching` | Write `outputs/matching.{md,json}`: propensity-score matching and balance table (about 4 s). |
 | `make ladder` | Runs naive, fe, rd and matching, then writes `outputs/ladder.{md,json}` and `fig_ladder.png`: every estimate side by side with the computed verdicts and flags. |
+| `make robustness` | Runs fe and rd, then writes `outputs/robustness.{md,json}` and `fig_robustness.png`: the 12 pre-registered Phase 3 checks with their computed flags (ADR-0011). 13.4 s warm including fe and rd; the robustness step alone takes about 5 s (measured 2026-11-16). |
 
 ## Clean-clone rebuild
 
@@ -42,7 +43,8 @@ Outputs are deterministic: JSON outputs are byte-identical across runs.
 | rddensity | Phase 1 density test (`diagnostics.py`) |
 | pyfixest | fixed-effects models (`fe.py`), weighted OLS for matching (`matching.py`) |
 | rdrobust | donut RD (`rd.py`) |
-| statsmodels | propensity logit (`matching.py`) |
+| statsmodels | propensity logit (`matching.py`); test oracle for the sensitivity fits (`test_estimators.py`) |
+| scipy | t quantiles for robustness values (`robustness.py`); also required by pyfixest and statsmodels |
 | pytest (dev) | tests |
 
 ## Adding a dependency
