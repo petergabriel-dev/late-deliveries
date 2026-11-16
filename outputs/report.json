@@ -6,5 +6,292 @@
   "memo_horizon_low_brl": 0.99465,
   "memo_horizon_high_brl": 3.159372,
   "memo_horizon_low_usd": 0.298645,
-  "memo_horizon_high_usd": 0.948607
+  "memo_horizon_high_usd": 0.948607,
+  "writeup_primary": {
+    "id": "low_review/a",
+    "outcome": "low_review",
+    "model": "a",
+    "model_label": "binary late (total effect)",
+    "role": "pre-registered primary",
+    "sample_description": "headline orders with a review",
+    "formula": "low_review ~ late + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+    "n_sample": 94302,
+    "n_obs": 93776,
+    "singleton_rows_dropped": 526,
+    "clusters": 2396,
+    "weeks": 87,
+    "outcome_mean": 0.123358,
+    "collinear_controls_dropped": [],
+    "estimates": [
+      {
+        "term": "late",
+        "estimate": 0.516256,
+        "se": 0.007049,
+        "ci95_low": 0.502433,
+        "ci95_high": 0.530079,
+        "p_value": 0.0
+      }
+    ]
+  },
+  "writeup_repeat_table": "| Window (days) | Eligible first orders | Regression observations | Effect (pp) | 95% CI (pp) |\n|---|---|---|---|---|\n| 90 | 72,130 | 71,692 | -0.240 | [-0.488, 0.007] |\n| 180 | 51,704 | 51,362 | -0.258 | [-0.729, 0.214] |",
+  "writeup_repeat_power": {
+    "window_days": 90,
+    "eligible_first_orders": 72130,
+    "late": 5242,
+    "on_time": 66888,
+    "pooled_base_rate": 0.011507,
+    "mde_pp": 0.428555,
+    "mde_relative": 0.37243
+  },
+  "writeup_ladder_table": "| Method | Role | Effect (share) | 95% CI |\n|---|---|---|---|\n| Naive difference | biased baseline | 0.537 | [0.525, 0.549] |\n| FE regression | headline (pre-registered) | 0.516 | [0.502, 0.530] |\n| Donut RD | corroborating | 0.117 | [-0.110, 0.134] |\n| Matching | corroborating | 0.529 | [0.513, 0.545] |",
+  "writeup_rd": {
+    "spec": "main",
+    "bandwidth": 7.5,
+    "donut": true,
+    "role": "corroborating (ADR-0007 \u00a73)",
+    "dropped_days": [
+      0,
+      1
+    ],
+    "estimate": 0.117059,
+    "ci95_low": -0.109622,
+    "ci95_high": 0.133645,
+    "p_value_robust": 0.846523,
+    "estimate_bias_corrected": 0.012012,
+    "se_conventional": 0.027714,
+    "se_robust": 0.062059,
+    "ci95_conventional_low": 0.062741,
+    "ci95_conventional_high": 0.171378,
+    "n_left": 12352,
+    "n_right": 2770,
+    "days_left": [
+      -6,
+      -5,
+      -4,
+      -3,
+      -2,
+      -1
+    ],
+    "days_right": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "clusters": 1817,
+    "fit_left": [
+      0.118146,
+      0.002937
+    ],
+    "fit_right": [
+      0.235205,
+      0.091107
+    ]
+  },
+  "writeup_continuity": {
+    "covariate": "promised_days",
+    "estimate": 3.436632,
+    "ci95_low": 2.366293,
+    "ci95_high": 6.883444,
+    "estimate_bias_corrected": 4.624869,
+    "n_left": 12352,
+    "n_right": 2770,
+    "days_left": [
+      -6,
+      -5,
+      -4,
+      -3,
+      -2,
+      -1
+    ],
+    "days_right": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ]
+  },
+  "writeup_disruption": {
+    "id": 10,
+    "label": "Exclude the Feb-Mar 2018 surge and the May 2018 strike",
+    "class": "sample",
+    "rule": "point estimate outside the headline 95% CI [0.5024, 0.5301]",
+    "estimate": 0.491795,
+    "se": 0.008744,
+    "ci95_low": 0.474648,
+    "ci95_high": 0.508943,
+    "n_sample": 73022,
+    "n_obs": 72479,
+    "late_orders": 3672,
+    "clusters": 2279,
+    "rows_vs_headline": -21280,
+    "fired": true,
+    "if_fired": "the headline is fragile on this dimension (ADR-0007)"
+  },
+  "writeup_sensitivity": {
+    "id": 6,
+    "label": "Sensitivity to unobserved confounding",
+    "class": "diagnostic",
+    "rule": "for a confounder 1x as strong as distance or customer state, the bias-adjusted 95% CI includes 0",
+    "estimate": 0.516256,
+    "se_clustered": 0.007049,
+    "se_iid": 0.004097,
+    "t_iid": 126.001701,
+    "dof": 91188,
+    "crit": 1.960955,
+    "n_obs": 93776,
+    "r2yd_x": 0.148289,
+    "rv_q1": 0.339192,
+    "rv_q1_alpha05": 0.334978,
+    "benchmarks": [
+      {
+        "benchmark": "distance",
+        "columns": [
+          "distance_km",
+          "distance_missing"
+        ],
+        "r2dxj_x": 0.001986,
+        "r2yxj_dx": 5.7e-05,
+        "bounds": [
+          {
+            "k": 1,
+            "r2dz_x": 0.00199,
+            "r2yz_dx": 5.8e-05,
+            "adjusted_estimate": 0.515837,
+            "adjusted_se": 0.007056,
+            "adjusted_t": 73.104696,
+            "ci95_low": 0.502,
+            "ci95_high": 0.529673
+          },
+          {
+            "k": 2,
+            "r2dz_x": 0.003981,
+            "r2yz_dx": 0.000115,
+            "adjusted_estimate": 0.515416,
+            "adjusted_se": 0.007063,
+            "adjusted_t": 72.974365,
+            "ci95_low": 0.501566,
+            "ci95_high": 0.529266
+          },
+          {
+            "k": 3,
+            "r2dz_x": 0.005971,
+            "r2yz_dx": 0.000173,
+            "adjusted_estimate": 0.514995,
+            "adjusted_se": 0.00707,
+            "adjusted_t": 72.843952,
+            "ci95_low": 0.501132,
+            "ci95_high": 0.528859
+          }
+        ]
+      },
+      {
+        "benchmark": "customer_state",
+        "columns": [
+          "customer_state"
+        ],
+        "r2dxj_x": 0.017049,
+        "r2yxj_dx": 0.001278,
+        "bounds": [
+          {
+            "k": 1,
+            "r2dz_x": 0.017345,
+            "r2yz_dx": 0.001325,
+            "adjusted_estimate": 0.510274,
+            "adjusted_se": 0.007107,
+            "adjusted_t": 71.803348,
+            "ci95_low": 0.496338,
+            "ci95_high": 0.524209
+          },
+          {
+            "k": 2,
+            "r2dz_x": 0.03469,
+            "r2yz_dx": 0.002651,
+            "adjusted_estimate": 0.504181,
+            "adjusted_se": 0.007165,
+            "adjusted_t": 70.363759,
+            "ci95_low": 0.49013,
+            "ci95_high": 0.518231
+          },
+          {
+            "k": 3,
+            "r2dz_x": 0.052035,
+            "r2yz_dx": 0.003979,
+            "adjusted_estimate": 0.497972,
+            "adjusted_se": 0.007226,
+            "adjusted_t": 68.915984,
+            "ci95_low": 0.483803,
+            "ci95_high": 0.512141
+          }
+        ]
+      }
+    ],
+    "fired": false,
+    "if_fired": "the headline rests on a fragile no-unobserved-confounding assumption (ADR-0007, ADR-0010)"
+  },
+  "writeup_state_benchmark": {
+    "benchmark": "customer_state",
+    "columns": [
+      "customer_state"
+    ],
+    "r2dxj_x": 0.017049,
+    "r2yxj_dx": 0.001278,
+    "bounds": [
+      {
+        "k": 1,
+        "r2dz_x": 0.017345,
+        "r2yz_dx": 0.001325,
+        "adjusted_estimate": 0.510274,
+        "adjusted_se": 0.007107,
+        "adjusted_t": 71.803348,
+        "ci95_low": 0.496338,
+        "ci95_high": 0.524209
+      },
+      {
+        "k": 2,
+        "r2dz_x": 0.03469,
+        "r2yz_dx": 0.002651,
+        "adjusted_estimate": 0.504181,
+        "adjusted_se": 0.007165,
+        "adjusted_t": 70.363759,
+        "ci95_low": 0.49013,
+        "ci95_high": 0.518231
+      },
+      {
+        "k": 3,
+        "r2dz_x": 0.052035,
+        "r2yz_dx": 0.003979,
+        "adjusted_estimate": 0.497972,
+        "adjusted_se": 0.007226,
+        "adjusted_t": 68.915984,
+        "ci95_low": 0.483803,
+        "ci95_high": 0.512141
+      }
+    ]
+  },
+  "writeup_post_delivery": {
+    "id": 8,
+    "label": "Post-delivery reviews only (biased)",
+    "class": "estimand",
+    "rule": "point estimate <= 0 or >= headline estimate (0.5163)",
+    "estimate": 0.156664,
+    "se": 0.010658,
+    "ci95_low": 0.135765,
+    "ci95_high": 0.177564,
+    "n_sample": 89347,
+    "n_obs": 88835,
+    "late_orders": 1626,
+    "clusters": 2365,
+    "rows_vs_headline": -4955,
+    "fired": false,
+    "if_fired": "the arrived-late effect is not positive or exceeds the total effect (ADR-0011 \u00a71)"
+  },
+  "writeup_checks_count": 12,
+  "writeup_flags_count": 2,
+  "writeup_robust_table": "| Check | Sample change | Effect (share) | 95% CI | Flag |\n|---|---|---|---|---|\n| 3 | Exclude Black Friday week (2017-11-24 to 11-30) | 0.511 | [0.497, 0.526] | no |\n| 7 | Include multi-seller orders | 0.515 | [0.501, 0.529] | no |\n| 10 | Exclude the Feb-Mar 2018 surge and the May 2018 strike | 0.492 | [0.475, 0.509] | yes |",
+  "writeup_measured_share": 0.029948
 }

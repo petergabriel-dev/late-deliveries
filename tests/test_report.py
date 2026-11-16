@@ -7,18 +7,56 @@ import pytest
 from late_delivery import report as R
 
 
-def test_memo_arithmetic_on_synthetic_sources():
+@pytest.fixture
+def report_sources():
     sources = {"money": {"tornado": [{"input": "other"}, {"input": "horizon_days", "low_revenue": 6,
                                                              "high_revenue": 12}],
                          "fx": {"brl_per_usd": 3}},
                "fe": {"primary": {"estimate": 0.4}},
                "ladder": {"rows": [{"method": "Donut RD", "estimate": 0.1}]},
                "robustness": {"checks": [{"id": 10, "estimate": 0.3}]}}
-    assert R.derived(sources) == {
+    sources["money"]["flags"] = [{"id": 1, "value": 0.05}]
+    sources["fe"]["models"] = [{"id": "low_review/a", "n_obs": 90}]
+    for window in (90, 180):
+        sources["fe"]["models"].append({"id": f"repeat_{window}d/a", "n_sample": 100, "n_obs": 90,
+            "estimates": [{"term": "late", "estimate": -0.01, "ci95_low": -0.02, "ci95_high": 0.005}]})
+    sources["ladder"]["rows"] = [{"method": method, "role": "synthetic", "estimate": 0.1,
+                                   "ci95_low": 0.05, "ci95_high": 0.15}
+                                  for method in ("Matching", "Donut RD", "FE regression", "Naive difference")]
+    sources["robustness"]["checks"] = [
+        {"id": i, "label": f"Synthetic check {i}", "estimate": 0.3, "ci95_low": 0.2,
+         "ci95_high": 0.4, "fired": i == 10} for i in (3, 7, 10)] + [
+        {"id": 5, "covariates": [{"covariate": "promised_days", "estimate": 0.5}]},
+        {"id": 6, "rv_q1": 0.4, "benchmarks": [{"benchmark": "customer_state", "r2dxj_x": 0.01}]},
+        {"id": 8, "estimate": 0.2}]
+    sources["robustness"]["flags_fired"] = [10]
+    sources["diagnostics"] = {"repeat_mde": [{"window_days": 90, "pooled_base_rate": 0.01}]}
+    sources["rd"] = {"estimates": [{"spec": "main", "estimate": 0.1}]}
+    return sources
+
+
+def test_memo_arithmetic_on_synthetic_sources(report_sources):
+    assert {k: v for k, v in R.derived(report_sources).items() if k.startswith("memo_")} == {
         "memo_review_scale": 100, "memo_review_more": 40, "memo_rd_more": 10, "memo_disruption_more": 30,
         "memo_horizon_low_brl": 6, "memo_horizon_high_brl": 12,
         "memo_horizon_low_usd": 2, "memo_horizon_high_usd": 4,
     }
+
+
+def test_writeup_selections_and_small_tables(report_sources):
+    d = R.derived(report_sources)
+    assert d["writeup_primary"]["n_obs"] == 90
+    assert d["writeup_repeat_power"]["window_days"] == 90
+    assert "-1.000" in d["writeup_repeat_table"] and "[-2.000, 0.500]" in d["writeup_repeat_table"]
+    assert d["writeup_ladder_table"].index("Naive difference") < d["writeup_ladder_table"].index("Matching")
+    assert "[0.050, 0.150]" in d["writeup_ladder_table"]
+    assert d["writeup_rd"]["estimate"] == 0.1
+    assert d["writeup_continuity"]["estimate"] == 0.5
+    assert d["writeup_sensitivity"]["rv_q1"] == 0.4
+    assert d["writeup_state_benchmark"]["r2dxj_x"] == 0.01
+    assert d["writeup_checks_count"] == 6 and d["writeup_flags_count"] == 1
+    assert "Synthetic check 10" in d["writeup_robust_table"]
+    assert d["writeup_measured_share"] == 0.05
 
 
 def test_nested_lookup_format_escape_and_determinism():

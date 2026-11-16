@@ -7,7 +7,7 @@ import tomllib
 from urllib.parse import unquote, urlsplit
 
 from late_delivery import config as C
-from late_delivery.diagnostics import rounded
+from late_delivery.diagnostics import md_table, rounded
 
 
 def derived(sources: dict) -> dict:
@@ -15,15 +15,48 @@ def derived(sources: dict) -> dict:
     money = sources["money"]
     horizon = one(money["tornado"], input="horizon_days")
     scale = 100  # ADR-0015 / T34: unhappy reviews per this many late orders.
+    checks = sources["robustness"]["checks"]
+    disruption = one(checks, id=10)
+    sensitivity = one(checks, id=6)
+    repeat_rows = []
+    for window in (90, 180):  # ADR-0004: primary and check repeat windows.
+        model = one(sources["fe"]["models"], id=f"repeat_{window}d/a")
+        estimate = one(model["estimates"], term="late")
+        repeat_rows.append({"Window (days)": window, "Eligible first orders": model["n_sample"],
+                            "Regression observations": model["n_obs"], "Effect (pp)": estimate["estimate"] * scale,
+                            "95% CI (pp)": f"[{estimate['ci95_low'] * scale:.3f}, {estimate['ci95_high'] * scale:.3f}]"})
+    ladder_rows = [one(sources["ladder"]["rows"], method=method)
+                   for method in ("Naive difference", "FE regression", "Donut RD", "Matching")]
+    ladder_table = [{"Method": row["method"], "Role": row["role"], "Effect (share)": row["estimate"],
+                     "95% CI": f"[{row['ci95_low']:.3f}, {row['ci95_high']:.3f}]"} for row in ladder_rows]
+    robust_table = [{"Check": row["id"], "Sample change": row["label"], "Effect (share)": row["estimate"],
+                     "95% CI": f"[{row['ci95_low']:.3f}, {row['ci95_high']:.3f}]",
+                     "Flag": "yes" if row["fired"] else "no"}
+                    for row in (one(checks, id=i) for i in (3, 7, 10))]
     return {
         "memo_review_scale": scale,
         "memo_review_more": sources["fe"]["primary"]["estimate"] * scale,
         "memo_rd_more": one(sources["ladder"]["rows"], method="Donut RD")["estimate"] * scale,
-        "memo_disruption_more": one(sources["robustness"]["checks"], id=10)["estimate"] * scale,
+        "memo_disruption_more": disruption["estimate"] * scale,
         "memo_horizon_low_brl": horizon["low_revenue"],
         "memo_horizon_high_brl": horizon["high_revenue"],
         "memo_horizon_low_usd": horizon["low_revenue"] / money["fx"]["brl_per_usd"],
         "memo_horizon_high_usd": horizon["high_revenue"] / money["fx"]["brl_per_usd"],
+        "writeup_primary": one(sources["fe"]["models"], id="low_review/a"),
+        "writeup_repeat_table": md_table(repeat_rows, {"Eligible first orders": "{:,}",
+                                                       "Regression observations": "{:,}", "Effect (pp)": "{:.3f}"}),
+        "writeup_repeat_power": one(sources["diagnostics"]["repeat_mde"], window_days=90),
+        "writeup_ladder_table": md_table(ladder_table, {"Effect (share)": "{:.3f}"}),
+        "writeup_rd": one(sources["rd"]["estimates"], spec="main"),
+        "writeup_continuity": one(one(checks, id=5)["covariates"], covariate="promised_days"),
+        "writeup_disruption": disruption,
+        "writeup_sensitivity": sensitivity,
+        "writeup_state_benchmark": one(sensitivity["benchmarks"], benchmark="customer_state"),
+        "writeup_post_delivery": one(checks, id=8),
+        "writeup_checks_count": len(checks),
+        "writeup_flags_count": len(sources["robustness"]["flags_fired"]),
+        "writeup_robust_table": md_table(robust_table, {"Effect (share)": "{:.3f}"}),
+        "writeup_measured_share": one(money["flags"], id=1)["value"],
     }
 
 
