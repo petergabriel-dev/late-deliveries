@@ -1,0 +1,307 @@
+{
+  "label": "Donut RD at the promised date (ADR-0007 \u00a73, ADR-0008 \u00a73); corroborating",
+  "spec": {
+    "outcome": "low_review",
+    "sample": "headline orders with a review",
+    "running_variable": "days_late",
+    "cutoff": 0.5,
+    "kernel": "triangular",
+    "polynomial": 1,
+    "bias_correction_polynomial": 2,
+    "vce": "CR1 clustered by seller_id (rdrobust vce='cr1')",
+    "masspoints": "adjust",
+    "window": "|days_late - cutoff| < h",
+    "estimate": "conventional",
+    "ci": "95% robust bias-corrected"
+  },
+  "estimates": [
+    {
+      "spec": "main",
+      "bandwidth": 7.5,
+      "donut": true,
+      "role": "corroborating (ADR-0007 \u00a73)",
+      "dropped_days": [
+        0,
+        1
+      ],
+      "estimate": 0.117059,
+      "ci95_low": -0.109622,
+      "ci95_high": 0.133645,
+      "p_value_robust": 0.846523,
+      "estimate_bias_corrected": 0.012012,
+      "se_conventional": 0.027714,
+      "se_robust": 0.062059,
+      "ci95_conventional_low": 0.062741,
+      "ci95_conventional_high": 0.171378,
+      "n_left": 12352,
+      "n_right": 2770,
+      "days_left": [
+        -6,
+        -5,
+        -4,
+        -3,
+        -2,
+        -1
+      ],
+      "days_right": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "clusters": 1817,
+      "fit_left": [
+        0.118146,
+        0.002937
+      ],
+      "fit_right": [
+        0.235205,
+        0.091107
+      ]
+    },
+    {
+      "spec": "h = 5.5",
+      "bandwidth": 5.5,
+      "donut": true,
+      "role": "sensitivity",
+      "dropped_days": [
+        0,
+        1
+      ],
+      "estimate": 0.089042,
+      "ci95_low": -0.251756,
+      "ci95_high": 0.155078,
+      "p_value_robust": 0.641389,
+      "estimate_bias_corrected": -0.048339,
+      "se_conventional": 0.037804,
+      "se_robust": 0.103786,
+      "ci95_conventional_low": 0.014948,
+      "ci95_conventional_high": 0.163136,
+      "n_left": 6573,
+      "n_right": 1894,
+      "days_left": [
+        -4,
+        -3,
+        -2,
+        -1
+      ],
+      "days_right": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "clusters": 1484,
+      "fit_left": [
+        0.113131,
+        0.000963
+      ],
+      "fit_right": [
+        0.202172,
+        0.105139
+      ]
+    },
+    {
+      "spec": "h = 10.5",
+      "bandwidth": 10.5,
+      "donut": true,
+      "role": "sensitivity",
+      "dropped_days": [
+        0,
+        1
+      ],
+      "estimate": 0.166496,
+      "ci95_low": -0.063013,
+      "ci95_high": 0.102722,
+      "p_value_robust": 0.638649,
+      "estimate_bias_corrected": 0.019854,
+      "se_conventional": 0.022697,
+      "se_robust": 0.04228,
+      "ci95_conventional_low": 0.122011,
+      "ci95_conventional_high": 0.210981,
+      "n_left": 26458,
+      "n_right": 3526,
+      "days_left": [
+        -9,
+        -8,
+        -7,
+        -6,
+        -5,
+        -4,
+        -3,
+        -2,
+        -1
+      ],
+      "days_right": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "clusters": 2203,
+      "fit_left": [
+        0.119287,
+        0.003365
+      ],
+      "fit_right": [
+        0.285783,
+        0.073223
+      ]
+    },
+    {
+      "spec": "no donut",
+      "bandwidth": 7.5,
+      "donut": false,
+      "role": "sensitivity",
+      "dropped_days": [],
+      "estimate": 0.045322,
+      "ci95_low": -0.053015,
+      "ci95_high": 0.030513,
+      "p_value_robust": 0.597493,
+      "estimate_bias_corrected": -0.011251,
+      "se_conventional": 0.014818,
+      "se_robust": 0.021309,
+      "ci95_conventional_low": 0.01628,
+      "ci95_conventional_high": 0.074364,
+      "n_left": 13627,
+      "n_right": 3587,
+      "days_left": [
+        -6,
+        -5,
+        -4,
+        -3,
+        -2,
+        -1,
+        0
+      ],
+      "days_right": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "clusters": 1894,
+      "fit_left": [
+        0.121453,
+        0.003691
+      ],
+      "fit_right": [
+        0.166775,
+        0.108612
+      ]
+    }
+  ],
+  "late_median_days_late": 7.0,
+  "daily_means": [
+    {
+      "days_late": -9,
+      "low_review_share": 0.087023,
+      "orders": 4562
+    },
+    {
+      "days_late": -8,
+      "low_review_share": 0.096226,
+      "orders": 4770
+    },
+    {
+      "days_late": -7,
+      "low_review_share": 0.090281,
+      "orders": 4774
+    },
+    {
+      "days_late": -6,
+      "low_review_share": 0.092076,
+      "orders": 3584
+    },
+    {
+      "days_late": -5,
+      "low_review_share": 0.104784,
+      "orders": 2195
+    },
+    {
+      "days_late": -4,
+      "low_review_share": 0.107879,
+      "orders": 1891
+    },
+    {
+      "days_late": -3,
+      "low_review_share": 0.106158,
+      "orders": 1705
+    },
+    {
+      "days_late": -2,
+      "low_review_share": 0.117188,
+      "orders": 1536
+    },
+    {
+      "days_late": -1,
+      "low_review_share": 0.108952,
+      "orders": 1441
+    },
+    {
+      "days_late": 0,
+      "low_review_share": 0.122353,
+      "orders": 1275
+    },
+    {
+      "days_late": 1,
+      "low_review_share": 0.194614,
+      "orders": 817
+    },
+    {
+      "days_late": 2,
+      "low_review_share": 0.343925,
+      "orders": 535
+    },
+    {
+      "days_late": 3,
+      "low_review_share": 0.503043,
+      "orders": 493
+    },
+    {
+      "days_late": 4,
+      "low_review_share": 0.558621,
+      "orders": 435
+    },
+    {
+      "days_late": 5,
+      "low_review_share": 0.647332,
+      "orders": 431
+    },
+    {
+      "days_late": 6,
+      "low_review_share": 0.76601,
+      "orders": 406
+    },
+    {
+      "days_late": 7,
+      "low_review_share": 0.734043,
+      "orders": 470
+    },
+    {
+      "days_late": 8,
+      "low_review_share": 0.784848,
+      "orders": 330
+    },
+    {
+      "days_late": 9,
+      "low_review_share": 0.808219,
+      "orders": 219
+    },
+    {
+      "days_late": 10,
+      "low_review_share": 0.830918,
+      "orders": 207
+    }
+  ]
+}

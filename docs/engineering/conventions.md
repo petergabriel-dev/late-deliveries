@@ -4,7 +4,7 @@
 
 - Package code in `src/late_delivery/` (uv_build backend); one module per pipeline step, each with a `main()` run as `python -m late_delivery.<module>`.
 - Tests in `tests/`: `test_build.py` (definitions on small synthetic fixtures), `test_data_quality.py` (real data, pinned counts), `test_estimators.py` (Phase 2 and Phase 3 estimators on synthetic data with planted effects, the ladder's and robustness checks' flag logic, and the sensitivity formulas against sensemakr's published Darfur values and statsmodels), `test_money.py` (Phase 4 money on synthetic data: hand-computed seller exposures, assumptions-file guards, flag rules on both sides of their thresholds, an end-to-end synthetic run). Estimator tests check that the known effect lies inside the 95% CI and within 0.02; tests of several coefficients at once use a joint band (|z| < 3.3 each).
-- Generated files go to `data/processed/` and `outputs/`, both gitignored. Never commit generated output.
+- Generated results in `outputs/` are committed and guarded by `make check-outputs` (PNG bytes excluded; ADR-0015). Intermediate data in `data/processed/` stays gitignored and untracked.
 
 ## Parameters and definitions
 

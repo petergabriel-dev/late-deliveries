@@ -1,0 +1,638 @@
+{
+  "label": "Phase 4 money translation: cost per late delivery (ADR-0006, ADR-0013)",
+  "spec": {
+    "unit": "per late headline order; BRL, USD = BRL / mean monthly BCB PTAX rate",
+    "platform_revenue": "lost GMV (item price) x take rate, channels 1-2; channel 3 is a direct cost",
+    "channel2_anchor": "review_answer_ts of the late order; later orders in (answer, answer + H]",
+    "eligible": "answer + H < 2018-09-01",
+    "later_order_excluded_statuses": [
+      "canceled",
+      "unavailable"
+    ],
+    "horizons_days": [
+      30,
+      90,
+      180
+    ],
+    "range": "every input at its low-cost end to every input at its high-cost end: bounds, not a confidence interval",
+    "measured_share_min": 0.1,
+    "window_months": 20
+  },
+  "fx": {
+    "brl_per_usd": 3.33054,
+    "months": 20,
+    "series": "BCB SGS 3698: monthly average of the daily PTAX selling rate (SGS series 1)"
+  },
+  "inputs": {
+    "epsilon": {
+      "tag": "assumed",
+      "status": "sourced",
+      "unit": "share of sales per star",
+      "low": 0.05,
+      "value": 0.075,
+      "high": 0.1,
+      "sources": [
+        {
+          "citation": "Magnusson, E. (2022). Unboxing the Causal Effect of Ratings on Product Demand: Evidence from Wayfair.com. Journal of Industrial Economics 70(3), 525-564. doi:10.1111/joie.12302",
+          "url": "https://ideas.repec.org/a/bla/jindec/v70y2022i3p525-564.html"
+        },
+        {
+          "citation": "Luca, M. Reviews, Reputation, and Revenue: The Case of Yelp.com. Harvard Business School Working Paper 12-016 (2011-09, revised 2016-03)",
+          "url": "https://econpapers.repec.org/RePEc:hbs:wpaper:12-016"
+        }
+      ]
+    },
+    "take_rate": {
+      "tag": "assumed",
+      "status": "sourced",
+      "unit": "share of item price",
+      "low": 0.2,
+      "value": 0.2,
+      "high": 0.2,
+      "sources": [
+        {
+          "citation": "Mercado&Consumo, 'Startup ajuda pequenos lojistas a vender produtos em marketplaces', 2017-06-26",
+          "url": "https://mercadoeconsumo.com.br/26/06/2017/noticias/startup-ajuda-pequenos-lojistas-a-vender-produtos-em-marketplaces/"
+        },
+        {
+          "citation": "Exame, 'Olist, marketplace de marketplaces, recebe R$ 190 mi do SoftBank', 2019-10-23",
+          "url": "https://exame.com/pme/olist-marketplace-de-marketplaces-recebe-r-190-mi-do-softbank/"
+        }
+      ]
+    },
+    "horizon_days": {
+      "tag": "assumed",
+      "status": "illustrative",
+      "unit": "days",
+      "low": 30,
+      "value": 90,
+      "high": 180,
+      "sources": []
+    },
+    "contacts_per_late_order": {
+      "tag": "assumed",
+      "status": "illustrative",
+      "unit": "contacts per late order",
+      "low": 0.5,
+      "value": 1.0,
+      "high": 2.0,
+      "sources": []
+    },
+    "cost_per_contact": {
+      "tag": "assumed",
+      "status": "illustrative",
+      "unit": "BRL per contact",
+      "low": 6.06,
+      "value": 6.32,
+      "high": 6.58,
+      "sources": [
+        {
+          "citation": "Consumidor Moderno, 'O SAC n\u00e3o \u00e9 o mesmo de antes: como o setor ir\u00e1 se reinventar?', 2019-12-13, reporting the CIP study (2018 vs 2017 data)",
+          "url": "https://consumidormoderno.com.br/o-sac-nao-e-o-mesmo/"
+        }
+      ]
+    },
+    "repeat_effect_90d": {
+      "tag": "measured",
+      "ref": "fe.json:repeat_90d/a",
+      "terms": [
+        "late"
+      ]
+    },
+    "repeat_effect_180d": {
+      "tag": "measured",
+      "ref": "fe.json:repeat_180d/a",
+      "terms": [
+        "late"
+      ]
+    },
+    "star_drop_bins": {
+      "tag": "measured",
+      "ref": "fe.json:review_score/b",
+      "terms": [
+        "late_1_2",
+        "late_3_7",
+        "late_8_14",
+        "late_15p"
+      ]
+    },
+    "low_review_bins": {
+      "tag": "measured",
+      "ref": "fe.json:low_review/b",
+      "terms": [
+        "late_1_2",
+        "late_3_7",
+        "late_8_14",
+        "late_15p"
+      ]
+    },
+    "broken_promise": {
+      "tag": "measured",
+      "ref": "fe.json:low_review/c",
+      "terms": [
+        "late",
+        "delivery_days"
+      ]
+    },
+    "repeat_gmv_90d": {
+      "tag": "measured",
+      "ref": "orders.parquet:repeat_90d_gmv",
+      "terms": []
+    },
+    "repeat_gmv_180d": {
+      "tag": "measured",
+      "ref": "orders.parquet:repeat_180d_gmv",
+      "terms": []
+    },
+    "seller_exposure": {
+      "tag": "measured",
+      "ref": "orders.parquet:seller_id,purchase_ts,order_status,price,review_answer_ts",
+      "terms": []
+    },
+    "late_mix": {
+      "tag": "measured",
+      "ref": "orders.parquet:in_headline,late,days_late,review_score",
+      "terms": []
+    }
+  },
+  "measured": {
+    "repeat_effect_90d": {
+      "low": 0.0,
+      "central": 0.002404,
+      "high": 0.004878
+    },
+    "repeat_effect_180d": {
+      "low": 0.0,
+      "central": 0.002575,
+      "high": 0.007291
+    },
+    "star_drop": {
+      "late_1_2": {
+        "low": 0.661006,
+        "central": 0.743567,
+        "high": 0.826129
+      },
+      "late_3_7": {
+        "low": 1.923081,
+        "central": 1.997445,
+        "high": 2.071809
+      },
+      "late_8_14": {
+        "low": 2.444752,
+        "central": 2.518684,
+        "high": 2.592617
+      },
+      "late_15p": {
+        "low": 2.389975,
+        "central": 2.466503,
+        "high": 2.543031
+      }
+    },
+    "repeat_value_90d": 128.656157,
+    "repeaters_90d": 830,
+    "repeat_value_180d": 131.444995,
+    "repeaters_180d": 951
+  },
+  "late_orders": {
+    "late_orders": 6518,
+    "late_with_review": 6366,
+    "review_share": 0.97668,
+    "counts": {
+      "late_1_2": 1352,
+      "late_3_7": 2235,
+      "late_8_14": 1446,
+      "late_15p": 1333
+    },
+    "mix": {
+      "late_1_2": 0.212378,
+      "late_3_7": 0.351084,
+      "late_8_14": 0.227144,
+      "late_15p": 0.209394
+    }
+  },
+  "exposure": {
+    "30": {
+      "by_bin": {
+        "late_1_2": 33.959886,
+        "late_3_7": 31.14576,
+        "late_8_14": 36.943897,
+        "late_15p": 29.683644
+      },
+      "eligible": {
+        "late_1_2": 1149,
+        "late_3_7": 1985,
+        "late_8_14": 1373,
+        "late_15p": 1296
+      }
+    },
+    "90": {
+      "by_bin": {
+        "late_1_2": 75.249178,
+        "late_3_7": 66.858747,
+        "late_8_14": 74.090265,
+        "late_15p": 68.947574
+      },
+      "eligible": {
+        "late_1_2": 1045,
+        "late_3_7": 1789,
+        "late_8_14": 1256,
+        "late_15p": 1239
+      }
+    },
+    "180": {
+      "by_bin": {
+        "late_1_2": 115.525853,
+        "late_3_7": 109.856421,
+        "late_8_14": 101.773163,
+        "late_15p": 112.153615
+      },
+      "eligible": {
+        "late_1_2": 594,
+        "late_3_7": 942,
+        "late_8_14": 610,
+        "late_15p": 614
+      }
+    }
+  },
+  "max_loss_fraction": 0.259262,
+  "cases": {
+    "low": {
+      "brl": {
+        "channel1_gmv": 0.0,
+        "channel2_gmv": 2.986993,
+        "total_gmv": 2.986993,
+        "channel1_revenue": 0.0,
+        "channel2_revenue": 0.597399,
+        "total_revenue": 0.597399
+      },
+      "usd": {
+        "channel1_gmv": 0.0,
+        "channel2_gmv": 0.89685,
+        "total_gmv": 0.89685,
+        "channel1_revenue": 0.0,
+        "channel2_revenue": 0.17937,
+        "total_revenue": 0.17937
+      }
+    },
+    "central": {
+      "brl": {
+        "channel1_gmv": 0.309289,
+        "channel2_gmv": 10.018244,
+        "total_gmv": 10.327533,
+        "channel1_revenue": 0.061858,
+        "channel2_revenue": 2.003649,
+        "total_revenue": 2.065507
+      },
+      "usd": {
+        "channel1_gmv": 0.092865,
+        "channel2_gmv": 3.007994,
+        "total_gmv": 3.100859,
+        "channel1_revenue": 0.018573,
+        "channel2_revenue": 0.601599,
+        "total_revenue": 0.620172
+      }
+    },
+    "high": {
+      "brl": {
+        "channel1_gmv": 0.627585,
+        "channel2_gmv": 21.470516,
+        "total_gmv": 22.098101,
+        "channel1_revenue": 0.125517,
+        "channel2_revenue": 4.294103,
+        "total_revenue": 4.41962
+      },
+      "usd": {
+        "channel1_gmv": 0.188433,
+        "channel2_gmv": 6.446557,
+        "total_gmv": 6.63499,
+        "channel1_revenue": 0.037687,
+        "channel2_revenue": 1.289311,
+        "total_revenue": 1.326998
+      }
+    }
+  },
+  "channel3_addon": {
+    "low": {
+      "brl": 3.03,
+      "usd": 0.909762
+    },
+    "central": {
+      "brl": 6.32,
+      "usd": 1.89759
+    },
+    "high": {
+      "brl": 13.16,
+      "usd": 3.951311
+    }
+  },
+  "tornado": [
+    {
+      "input": "horizon_days",
+      "illustrative": true,
+      "low_revenue": 0.99465,
+      "high_revenue": 3.159372,
+      "swing": 2.164722
+    },
+    {
+      "input": "epsilon",
+      "illustrative": false,
+      "low_revenue": 1.397624,
+      "high_revenue": 2.73339,
+      "swing": 1.335766
+    },
+    {
+      "input": "repeat_window_180d",
+      "illustrative": false,
+      "low_revenue": 2.003649,
+      "high_revenue": 2.195322,
+      "swing": 0.191673
+    },
+    {
+      "input": "star_drop_bins",
+      "illustrative": false,
+      "low_revenue": 1.98619,
+      "high_revenue": 2.144824,
+      "swing": 0.158634
+    },
+    {
+      "input": "repeat_effect_90d",
+      "illustrative": false,
+      "low_revenue": 2.003649,
+      "high_revenue": 2.129166,
+      "swing": 0.125517
+    },
+    {
+      "input": "take_rate",
+      "illustrative": false,
+      "low_revenue": 2.065507,
+      "high_revenue": 2.065507,
+      "swing": 0.0
+    }
+  ],
+  "flags": [
+    {
+      "id": 1,
+      "test": "ADR-0006: the assumed channels make up nearly all of the range",
+      "rule": "channel 1 central revenue < 10% of the central total",
+      "value": 0.029948,
+      "fired": true
+    },
+    {
+      "id": 2,
+      "test": "ADR-0006: one unsourced assumption flips the recommendation",
+      "rule": "the tornado row with the largest swing is an illustrative input",
+      "value": [
+        "horizon_days"
+      ],
+      "fired": true
+    },
+    {
+      "id": 3,
+      "test": "ADR-0012: the disruption scenario changes the recommendation",
+      "rule": "the scenario's central figure lies outside [headline low corner, headline high corner]",
+      "value": 2.145512,
+      "fired": false
+    }
+  ],
+  "flags_fired": [
+    1,
+    2
+  ],
+  "scenario": {
+    "label": "Disruption periods excluded (check 10 sample; ADR-0012, ADR-0013 \u00a77): sensitivity",
+    "fits": {
+      "review_score/b": {
+        "n_obs": 72479,
+        "estimates": {
+          "late_1_2": {
+            "term": "late_1_2",
+            "estimate": -0.750932,
+            "se": 0.052817,
+            "ci95_low": -0.854505,
+            "ci95_high": -0.647358,
+            "p_value": 0.0
+          },
+          "late_3_7": {
+            "term": "late_3_7",
+            "estimate": -1.927703,
+            "se": 0.048633,
+            "ci95_low": -2.023073,
+            "ci95_high": -1.832333,
+            "p_value": 0.0
+          },
+          "late_8_14": {
+            "term": "late_8_14",
+            "estimate": -2.441854,
+            "se": 0.053039,
+            "ci95_low": -2.545864,
+            "ci95_high": -2.337844,
+            "p_value": 0.0
+          },
+          "late_15p": {
+            "term": "late_15p",
+            "estimate": -2.423088,
+            "se": 0.048703,
+            "ci95_low": -2.518596,
+            "ci95_high": -2.327581,
+            "p_value": 0.0
+          }
+        }
+      },
+      "low_review/b": {
+        "n_obs": 72479,
+        "estimates": {
+          "late_1_2": {
+            "term": "late_1_2",
+            "estimate": 0.16049,
+            "se": 0.015083,
+            "ci95_low": 0.130912,
+            "ci95_high": 0.190069,
+            "p_value": 0.0
+          },
+          "late_3_7": {
+            "term": "late_3_7",
+            "estimate": 0.52077,
+            "se": 0.014221,
+            "ci95_low": 0.492883,
+            "ci95_high": 0.548657,
+            "p_value": 0.0
+          },
+          "late_8_14": {
+            "term": "late_8_14",
+            "estimate": 0.672299,
+            "se": 0.016043,
+            "ci95_low": 0.640838,
+            "ci95_high": 0.70376,
+            "p_value": 0.0
+          },
+          "late_15p": {
+            "term": "late_15p",
+            "estimate": 0.661105,
+            "se": 0.015318,
+            "ci95_low": 0.631067,
+            "ci95_high": 0.691144,
+            "p_value": 0.0
+          }
+        }
+      },
+      "low_review/a": {
+        "n_obs": 72479,
+        "term": "late",
+        "estimate": 0.491795,
+        "se": 0.008744,
+        "ci95_low": 0.474648,
+        "ci95_high": 0.508943,
+        "p_value": 0.0
+      }
+    },
+    "late_orders": {
+      "late_orders": 3772,
+      "late_with_review": 3672,
+      "review_share": 0.973489,
+      "counts": {
+        "late_1_2": 870,
+        "late_3_7": 1314,
+        "late_8_14": 760,
+        "late_15p": 728
+      },
+      "mix": {
+        "late_1_2": 0.236928,
+        "late_3_7": 0.357843,
+        "late_8_14": 0.206972,
+        "late_15p": 0.198257
+      }
+    },
+    "exposure": {
+      "30": {
+        "by_bin": {
+          "late_1_2": 41.146388,
+          "late_3_7": 33.568322,
+          "late_8_14": 34.686581,
+          "late_15p": 31.043544
+        },
+        "eligible": {
+          "late_1_2": 668,
+          "late_3_7": 1066,
+          "late_8_14": 687,
+          "late_15p": 691
+        }
+      },
+      "90": {
+        "by_bin": {
+          "late_1_2": 90.689347,
+          "late_3_7": 74.67914,
+          "late_8_14": 74.033892,
+          "late_15p": 78.325107
+        },
+        "eligible": {
+          "late_1_2": 650,
+          "late_3_7": 1035,
+          "late_8_14": 665,
+          "late_15p": 665
+        }
+      },
+      "180": {
+        "by_bin": {
+          "late_1_2": 115.829589,
+          "late_3_7": 110.873557,
+          "late_8_14": 102.600804,
+          "late_15p": 112.668599
+        },
+        "eligible": {
+          "late_1_2": 586,
+          "late_3_7": 929,
+          "late_8_14": 603,
+          "late_15p": 609
+        }
+      }
+    },
+    "cases": {
+      "low": {
+        "brl": {
+          "channel1_gmv": 0.0,
+          "channel2_gmv": 2.892737,
+          "total_gmv": 2.892737,
+          "channel1_revenue": 0.0,
+          "channel2_revenue": 0.578547,
+          "total_revenue": 0.578547
+        },
+        "usd": {
+          "channel1_gmv": 0.0,
+          "channel2_gmv": 0.868549,
+          "total_gmv": 0.868549,
+          "channel1_revenue": 0.0,
+          "channel2_revenue": 0.17371,
+          "total_revenue": 0.17371
+        }
+      },
+      "central": {
+        "brl": {
+          "channel1_gmv": 0.309289,
+          "channel2_gmv": 10.418272,
+          "total_gmv": 10.727562,
+          "channel1_revenue": 0.061858,
+          "channel2_revenue": 2.083654,
+          "total_revenue": 2.145512
+        },
+        "usd": {
+          "channel1_gmv": 0.092865,
+          "channel2_gmv": 3.128103,
+          "total_gmv": 3.220968,
+          "channel1_revenue": 0.018573,
+          "channel2_revenue": 0.625621,
+          "total_revenue": 0.644194
+        }
+      },
+      "high": {
+        "brl": {
+          "channel1_gmv": 0.627585,
+          "channel2_gmv": 20.83635,
+          "total_gmv": 21.463935,
+          "channel1_revenue": 0.125517,
+          "channel2_revenue": 4.16727,
+          "total_revenue": 4.292787
+        },
+        "usd": {
+          "channel1_gmv": 0.188433,
+          "channel2_gmv": 6.256148,
+          "total_gmv": 6.444581,
+          "channel1_revenue": 0.037687,
+          "channel2_revenue": 1.25123,
+          "total_revenue": 1.288916
+        }
+      }
+    }
+  },
+  "mix_decomposition": {
+    "headline_mix_weighted": 0.520552,
+    "check10_mix_weighted": 0.506594,
+    "predicted_drop": 0.013958,
+    "observed_drop": 0.024461,
+    "explained_share": 0.570605
+  },
+  "recommendation": {
+    "break_even_per_late_delivery": {
+      "low": {
+        "brl": 0.597399,
+        "usd": 0.17937
+      },
+      "central": {
+        "brl": 2.065507,
+        "usd": 0.620172
+      },
+      "high": {
+        "brl": 4.41962,
+        "usd": 1.326998
+      }
+    },
+    "broken_promise_equivalent_days": 105.173405,
+    "caveat": "The data has no checkout conversion, so the cost of padding promised dates is unmeasured."
+  },
+  "annual_illustration": {
+    "late_orders": 6518,
+    "late_orders_per_year": 3910.8,
+    "central_revenue_brl": 8077.783458,
+    "central_revenue_usd": 2425.367495,
+    "note": "This dataset's volume, which may not be Olist's full volume: illustrative."
+  }
+}

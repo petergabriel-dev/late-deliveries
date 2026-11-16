@@ -1,7 +1,15 @@
-.PHONY: all check-data build test diagnostics naive fe rd matching ladder robustness money
+.PHONY: all check-outputs check-data build test diagnostics naive fe rd matching ladder robustness money
 
 # One command rebuilds every result from the committed raw CSVs.
 all: test diagnostics ladder robustness money
+
+# Rebuild, then reject stale or uncommitted outputs; PNG bytes are excluded (ADR-0015).
+check-outputs: all
+	@status=$$(git status --porcelain --untracked-files=all -- outputs docs/report README.md) || exit $$?; \
+	offenders=$$(printf '%s\n' "$$status" | grep -v '\.png$$' || true); \
+	if [ -n "$$offenders" ]; then \
+		printf '%s\n' 'Generated outputs are stale or uncommitted:' "$$offenders"; exit 1; \
+	fi
 
 # Verify committed raw CSVs are byte-identical to the published dataset.
 check-data:

@@ -1,0 +1,527 @@
+{
+  "label": "Phase 3 robustness checks (ADR-0007 \u00a77, ADR-0011)",
+  "outcome": "low_review (share of 1-2 star reviews, 0-1 scale)",
+  "headline": {
+    "estimate": 0.516256,
+    "ci95_low": 0.502433,
+    "ci95_high": 0.530079,
+    "n_with_review": 94302
+  },
+  "rd_main_estimate": 0.117059,
+  "spec": {
+    "model": "headline model (a): low_review on binary late, ADR-0007 \u00a71 controls, seller + purchase-week FE, singletons dropped, CRV1 by seller, orders with a review",
+    "check1_late_min_days": 2,
+    "check2_route": "seller_state -> customer_state; median delivery_days over all headline orders; late = strictly above",
+    "check3_black_friday_week": [
+      "2017-11-24",
+      "2017-12-01"
+    ],
+    "check7_multi_seller_label": "multi_seller",
+    "check10_surge": [
+      "2018-02-01",
+      "2018-04-01"
+    ],
+    "check10_strike_first_last_day": [
+      "2018-05-21",
+      "2018-06-02"
+    ],
+    "check11_window_start": "2017-02-01",
+    "date_windows": "[start, end) on the purchase date; strike: purchase date <= last day and promised date >= first day",
+    "rd_bandwidth": 7.5,
+    "placebo_cutoffs": [
+      {
+        "cutoff": -6.5,
+        "donut_days": [
+          -7,
+          -6
+        ]
+      },
+      {
+        "cutoff": 7.5,
+        "donut_days": [
+          7,
+          8
+        ]
+      }
+    ],
+    "continuity_covariates": [
+      "log_price",
+      "log_freight",
+      "n_items",
+      "distance_km",
+      "promised_days"
+    ],
+    "sensitivity_benchmarks": {
+      "distance": [
+        "distance_km",
+        "distance_missing"
+      ],
+      "customer_state": [
+        "customer_state"
+      ]
+    },
+    "sensitivity_k": [
+      1,
+      2,
+      3
+    ]
+  },
+  "checks": [
+    {
+      "id": 1,
+      "label": "Late = 2+ days late (day +1 counts as on time)",
+      "class": "estimand",
+      "rule": "point estimate < headline estimate (0.5163)",
+      "estimate": 0.578246,
+      "se": 0.007533,
+      "ci95_low": 0.563474,
+      "ci95_high": 0.593017,
+      "n_sample": 94302,
+      "n_obs": 93776,
+      "late_orders": 5549,
+      "clusters": 2396,
+      "rows_vs_headline": 0,
+      "fired": false,
+      "if_fired": "removing the mildest late orders lowered the effect (ADR-0011 \u00a71)"
+    },
+    {
+      "id": 2,
+      "label": "Late = slower than the route median",
+      "class": "estimand",
+      "rule": "point estimate <= 0",
+      "estimate": 0.083936,
+      "se": 0.00267,
+      "ci95_low": 0.0787,
+      "ci95_high": 0.089172,
+      "n_sample": 94302,
+      "n_obs": 93776,
+      "late_orders": 46941,
+      "clusters": 2396,
+      "rows_vs_headline": 0,
+      "fired": false,
+      "if_fired": "being slower than the route norm shows no positive effect (ADR-0011 \u00a71)"
+    },
+    {
+      "id": 3,
+      "label": "Exclude Black Friday week (2017-11-24 to 11-30)",
+      "class": "sample",
+      "rule": "point estimate outside the headline 95% CI [0.5024, 0.5301]",
+      "estimate": 0.511458,
+      "se": 0.007546,
+      "ci95_low": 0.49666,
+      "ci95_high": 0.526256,
+      "n_sample": 91013,
+      "n_obs": 90488,
+      "late_orders": 5789,
+      "clusters": 2383,
+      "rows_vs_headline": -3289,
+      "fired": false,
+      "if_fired": "the headline is fragile on this dimension (ADR-0007)"
+    },
+    {
+      "id": 4,
+      "label": "Placebo cutoffs at days -7 and +7",
+      "class": "diagnostic",
+      "rule": "abs(placebo conventional estimate) >= abs(main RD conventional estimate) (0.1171)",
+      "placebos": [
+        {
+          "cutoff": -6.5,
+          "donut_days": [
+            -7,
+            -6
+          ],
+          "estimate": 0.002534,
+          "ci95_low": -0.050324,
+          "ci95_high": 0.039747,
+          "estimate_bias_corrected": -0.005288,
+          "n_left": 28777,
+          "n_right": 10043,
+          "days_left": [
+            -13,
+            -12,
+            -11,
+            -10,
+            -9,
+            -8
+          ],
+          "days_right": [
+            -5,
+            -4,
+            -3,
+            -2,
+            -1,
+            0
+          ]
+        },
+        {
+          "cutoff": 7.5,
+          "donut_days": [
+            7,
+            8
+          ],
+          "estimate": -0.104597,
+          "ci95_low": -0.200385,
+          "ci95_high": 0.136603,
+          "estimate_bias_corrected": -0.031891,
+          "n_left": 3117,
+          "n_right": 1116,
+          "days_left": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "days_right": [
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        }
+      ],
+      "fired": false,
+      "if_fired": "the RD estimate reflects the shape of the curve, not the promise (ADR-0010)"
+    },
+    {
+      "id": 5,
+      "label": "Covariate continuity at the promised date",
+      "class": "diagnostic",
+      "rule": "any covariate's robust 95% CI excludes 0",
+      "covariates": [
+        {
+          "covariate": "log_price",
+          "estimate": -0.027343,
+          "ci95_low": -0.340164,
+          "ci95_high": 0.167795,
+          "estimate_bias_corrected": -0.086184,
+          "n_left": 12352,
+          "n_right": 2770,
+          "days_left": [
+            -6,
+            -5,
+            -4,
+            -3,
+            -2,
+            -1
+          ],
+          "days_right": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ]
+        },
+        {
+          "covariate": "log_freight",
+          "estimate": 0.071679,
+          "ci95_low": -0.025747,
+          "ci95_high": 0.264296,
+          "estimate_bias_corrected": 0.119274,
+          "n_left": 12352,
+          "n_right": 2770,
+          "days_left": [
+            -6,
+            -5,
+            -4,
+            -3,
+            -2,
+            -1
+          ],
+          "days_right": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ]
+        },
+        {
+          "covariate": "n_items",
+          "estimate": 0.011322,
+          "ci95_low": -0.065907,
+          "ci95_high": 0.155627,
+          "estimate_bias_corrected": 0.04486,
+          "n_left": 12352,
+          "n_right": 2770,
+          "days_left": [
+            -6,
+            -5,
+            -4,
+            -3,
+            -2,
+            -1
+          ],
+          "days_right": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ]
+        },
+        {
+          "covariate": "distance_km",
+          "estimate": 36.310943,
+          "ci95_low": -126.822731,
+          "ci95_high": 197.768132,
+          "estimate_bias_corrected": 35.4727,
+          "n_left": 12352,
+          "n_right": 2770,
+          "days_left": [
+            -6,
+            -5,
+            -4,
+            -3,
+            -2,
+            -1
+          ],
+          "days_right": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ]
+        },
+        {
+          "covariate": "promised_days",
+          "estimate": 3.436632,
+          "ci95_low": 2.366293,
+          "ci95_high": 6.883444,
+          "estimate_bias_corrected": 4.624869,
+          "n_left": 12352,
+          "n_right": 2770,
+          "days_left": [
+            -6,
+            -5,
+            -4,
+            -3,
+            -2,
+            -1
+          ],
+          "days_right": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ]
+        }
+      ],
+      "fired": true,
+      "if_fired": "a covariate jumps at the promised date: the RD's no-sorting assumption fails (the headline does not rest on the RD)"
+    },
+    {
+      "id": 6,
+      "label": "Sensitivity to unobserved confounding",
+      "class": "diagnostic",
+      "rule": "for a confounder 1x as strong as distance or customer state, the bias-adjusted 95% CI includes 0",
+      "estimate": 0.516256,
+      "se_clustered": 0.007049,
+      "se_iid": 0.004097,
+      "t_iid": 126.001701,
+      "dof": 91188,
+      "crit": 1.960955,
+      "n_obs": 93776,
+      "r2yd_x": 0.148289,
+      "rv_q1": 0.339192,
+      "rv_q1_alpha05": 0.334978,
+      "benchmarks": [
+        {
+          "benchmark": "distance",
+          "columns": [
+            "distance_km",
+            "distance_missing"
+          ],
+          "r2dxj_x": 0.001986,
+          "r2yxj_dx": 5.7e-05,
+          "bounds": [
+            {
+              "k": 1,
+              "r2dz_x": 0.00199,
+              "r2yz_dx": 5.8e-05,
+              "adjusted_estimate": 0.515837,
+              "adjusted_se": 0.007056,
+              "adjusted_t": 73.104696,
+              "ci95_low": 0.502,
+              "ci95_high": 0.529673
+            },
+            {
+              "k": 2,
+              "r2dz_x": 0.003981,
+              "r2yz_dx": 0.000115,
+              "adjusted_estimate": 0.515416,
+              "adjusted_se": 0.007063,
+              "adjusted_t": 72.974365,
+              "ci95_low": 0.501566,
+              "ci95_high": 0.529266
+            },
+            {
+              "k": 3,
+              "r2dz_x": 0.005971,
+              "r2yz_dx": 0.000173,
+              "adjusted_estimate": 0.514995,
+              "adjusted_se": 0.00707,
+              "adjusted_t": 72.843952,
+              "ci95_low": 0.501132,
+              "ci95_high": 0.528859
+            }
+          ]
+        },
+        {
+          "benchmark": "customer_state",
+          "columns": [
+            "customer_state"
+          ],
+          "r2dxj_x": 0.017049,
+          "r2yxj_dx": 0.001278,
+          "bounds": [
+            {
+              "k": 1,
+              "r2dz_x": 0.017345,
+              "r2yz_dx": 0.001325,
+              "adjusted_estimate": 0.510274,
+              "adjusted_se": 0.007107,
+              "adjusted_t": 71.803348,
+              "ci95_low": 0.496338,
+              "ci95_high": 0.524209
+            },
+            {
+              "k": 2,
+              "r2dz_x": 0.03469,
+              "r2yz_dx": 0.002651,
+              "adjusted_estimate": 0.504181,
+              "adjusted_se": 0.007165,
+              "adjusted_t": 70.363759,
+              "ci95_low": 0.49013,
+              "ci95_high": 0.518231
+            },
+            {
+              "k": 3,
+              "r2dz_x": 0.052035,
+              "r2yz_dx": 0.003979,
+              "adjusted_estimate": 0.497972,
+              "adjusted_se": 0.007226,
+              "adjusted_t": 68.915984,
+              "ci95_low": 0.483803,
+              "ci95_high": 0.512141
+            }
+          ]
+        }
+      ],
+      "fired": false,
+      "if_fired": "the headline rests on a fragile no-unobserved-confounding assumption (ADR-0007, ADR-0010)"
+    },
+    {
+      "id": 7,
+      "label": "Include multi-seller orders",
+      "class": "sample",
+      "rule": "point estimate outside the headline 95% CI [0.5024, 0.5301]",
+      "estimate": 0.514992,
+      "se": 0.007143,
+      "ci95_low": 0.500985,
+      "ci95_high": 0.528998,
+      "n_sample": 95560,
+      "n_obs": 95034,
+      "late_orders": 6378,
+      "clusters": 2397,
+      "rows_vs_headline": 1258,
+      "fired": false,
+      "if_fired": "the headline is fragile on this dimension (ADR-0007)"
+    },
+    {
+      "id": 8,
+      "label": "Post-delivery reviews only (biased)",
+      "class": "estimand",
+      "rule": "point estimate <= 0 or >= headline estimate (0.5163)",
+      "estimate": 0.156664,
+      "se": 0.010658,
+      "ci95_low": 0.135765,
+      "ci95_high": 0.177564,
+      "n_sample": 89347,
+      "n_obs": 88835,
+      "late_orders": 1626,
+      "clusters": 2365,
+      "rows_vs_headline": -4955,
+      "fired": false,
+      "if_fired": "the arrived-late effect is not positive or exceeds the total effect (ADR-0011 \u00a71)"
+    },
+    {
+      "id": 9,
+      "label": "Repeat purchase at 180 days",
+      "class": "reference",
+      "rule": "no new flag: the Phase 2 repeat-window flag applies (outputs/ladder.json)",
+      "estimate": -0.002575,
+      "ci95_low": -0.007291,
+      "ci95_high": 0.002141,
+      "n_obs": 51362,
+      "fired": null,
+      "if_fired": ""
+    },
+    {
+      "id": 10,
+      "label": "Exclude the Feb-Mar 2018 surge and the May 2018 strike",
+      "class": "sample",
+      "rule": "point estimate outside the headline 95% CI [0.5024, 0.5301]",
+      "estimate": 0.491795,
+      "se": 0.008744,
+      "ci95_low": 0.474648,
+      "ci95_high": 0.508943,
+      "n_sample": 73022,
+      "n_obs": 72479,
+      "late_orders": 3672,
+      "clusters": 2279,
+      "rows_vs_headline": -21280,
+      "fired": true,
+      "if_fired": "the headline is fragile on this dimension (ADR-0007)"
+    },
+    {
+      "id": 11,
+      "label": "Window from 2017-02-01",
+      "class": "sample",
+      "rule": "point estimate outside the headline 95% CI [0.5024, 0.5301]",
+      "estimate": 0.515985,
+      "se": 0.007047,
+      "ci95_low": 0.502167,
+      "ci95_high": 0.529803,
+      "n_sample": 93565,
+      "n_obs": 93041,
+      "late_orders": 6345,
+      "clusters": 2379,
+      "rows_vs_headline": -737,
+      "fired": false,
+      "if_fired": "the headline is fragile on this dimension (ADR-0007)"
+    },
+    {
+      "id": 12,
+      "label": "Drop orders with more than one review",
+      "class": "sample",
+      "rule": "point estimate outside the headline 95% CI [0.5024, 0.5301]",
+      "estimate": 0.515914,
+      "se": 0.007057,
+      "ci95_low": 0.502075,
+      "ci95_high": 0.529752,
+      "n_sample": 93792,
+      "n_obs": 93263,
+      "late_orders": 6338,
+      "clusters": 2391,
+      "rows_vs_headline": -510,
+      "fired": false,
+      "if_fired": "the headline is fragile on this dimension (ADR-0007)"
+    }
+  ],
+  "flags_fired": [
+    5,
+    10
+  ]
+}

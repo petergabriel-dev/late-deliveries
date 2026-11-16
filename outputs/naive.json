@@ -1,0 +1,51 @@
+{
+  "label": "biased baseline, not a causal estimate",
+  "sample": "headline (ADR-0005)",
+  "interval": "95%, normal approximation, unequal variances",
+  "outcomes": [
+    {
+      "outcome": "low_review (primary)",
+      "population": "headline orders with a review",
+      "n_late": 6366,
+      "n_on_time": 87936,
+      "mean_late": 0.62394,
+      "mean_on_time": 0.087143,
+      "difference": 0.536797,
+      "ci95_low": 0.524752,
+      "ci95_high": 0.548842
+    },
+    {
+      "outcome": "review_score",
+      "population": "headline orders with a review",
+      "n_late": 6366,
+      "n_on_time": 87936,
+      "mean_late": 2.271442,
+      "mean_on_time": 4.311272,
+      "difference": -2.03983,
+      "ci95_low": -2.079145,
+      "ci95_high": -2.000515
+    },
+    {
+      "outcome": "repeat_90d",
+      "population": "eligible first orders",
+      "n_late": 5242,
+      "n_on_time": 66888,
+      "mean_late": 0.008012,
+      "mean_on_time": 0.011781,
+      "difference": -0.003769,
+      "ci95_low": -0.006317,
+      "ci95_high": -0.00122
+    },
+    {
+      "outcome": "repeat_180d",
+      "population": "eligible first orders",
+      "n_late": 2658,
+      "n_on_time": 49046,
+      "mean_late": 0.013544,
+      "mean_on_time": 0.018656,
+      "difference": -0.005112,
+      "ci95_low": -0.009667,
+      "ci95_high": -0.000557
+    }
+  ]
+}

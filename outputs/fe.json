@@ -1,0 +1,1046 @@
+{
+  "label": "Fixed-effects regression grid (ADR-0007 \u00a73, ADR-0008 \u00a72)",
+  "spec": {
+    "estimator": "OLS linear probability model, pyfixest feols",
+    "fixed_effects": [
+      "seller_id",
+      "purchase_week"
+    ],
+    "categorical_controls": [
+      "main_category",
+      "customer_state"
+    ],
+    "numeric_controls": [
+      "log_price",
+      "log_freight",
+      "n_items",
+      "distance_km",
+      "distance_missing",
+      "promised_days"
+    ],
+    "vcov": "CRV1 clustered by seller_id",
+    "ci": "95%, t with clusters - 1 df",
+    "singletons": "dropped (fixef_rm='singleton')",
+    "distance_cap_km": 5000.0,
+    "distance_capped_orders": 3,
+    "distance_missing_orders": 473,
+    "distance_fill_km": 433.902468,
+    "headline_orders": 94931,
+    "models": 25
+  },
+  "bin_counts": {
+    "late_bins": {
+      "late_1_2": 1366,
+      "late_3_7": 2293,
+      "late_8_14": 1477,
+      "late_15p": 1382
+    },
+    "delivery_bins_on_time": {
+      "dd_0_7": 32898,
+      "dd_8_14": 35530,
+      "dd_15_21": 14533,
+      "dd_22p": 5452
+    }
+  },
+  "primary": {
+    "id": "low_review/a",
+    "term": "late",
+    "estimate": 0.516256,
+    "se": 0.007049,
+    "ci95_low": 0.502433,
+    "ci95_high": 0.530079,
+    "p_value": 0.0,
+    "n_obs": 93776,
+    "clusters": 2396
+  },
+  "models": [
+    {
+      "id": "low_review/a",
+      "outcome": "low_review",
+      "model": "a",
+      "model_label": "binary late (total effect)",
+      "role": "pre-registered primary",
+      "sample_description": "headline orders with a review",
+      "formula": "low_review ~ late + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 94302,
+      "n_obs": 93776,
+      "singleton_rows_dropped": 526,
+      "clusters": 2396,
+      "weeks": 87,
+      "outcome_mean": 0.123358,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late",
+          "estimate": 0.516256,
+          "se": 0.007049,
+          "ci95_low": 0.502433,
+          "ci95_high": 0.530079,
+          "p_value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "low_review/b",
+      "outcome": "low_review",
+      "model": "b",
+      "model_label": "days-late bins (total effect)",
+      "role": "secondary",
+      "sample_description": "headline orders with a review",
+      "formula": "low_review ~ late_1_2 + late_3_7 + late_8_14 + late_15p + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 94302,
+      "n_obs": 93776,
+      "singleton_rows_dropped": 526,
+      "clusters": 2396,
+      "weeks": 87,
+      "outcome_mean": 0.123358,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late_1_2",
+          "estimate": 0.158253,
+          "se": 0.012164,
+          "ci95_low": 0.134401,
+          "ci95_high": 0.182105,
+          "p_value": 0.0
+        },
+        {
+          "term": "late_3_7",
+          "estimate": 0.536973,
+          "se": 0.010754,
+          "ci95_low": 0.515885,
+          "ci95_high": 0.558062,
+          "p_value": 0.0
+        },
+        {
+          "term": "late_8_14",
+          "estimate": 0.692143,
+          "se": 0.011113,
+          "ci95_low": 0.670351,
+          "ci95_high": 0.713934,
+          "p_value": 0.0
+        },
+        {
+          "term": "late_15p",
+          "estimate": 0.674345,
+          "se": 0.011916,
+          "ci95_low": 0.650977,
+          "ci95_high": 0.697712,
+          "p_value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "low_review/c",
+      "outcome": "low_review",
+      "model": "c",
+      "model_label": "binary late + delivery_days (broken promise holding speed)",
+      "role": "secondary",
+      "sample_description": "headline orders with a review",
+      "formula": "low_review ~ late + delivery_days + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 94302,
+      "n_obs": 93776,
+      "singleton_rows_dropped": 526,
+      "clusters": 2396,
+      "weeks": 87,
+      "outcome_mean": 0.123358,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late",
+          "estimate": 0.431842,
+          "se": 0.009186,
+          "ci95_low": 0.413829,
+          "ci95_high": 0.449855,
+          "p_value": 0.0
+        },
+        {
+          "term": "delivery_days",
+          "estimate": 0.004106,
+          "se": 0.000294,
+          "ci95_low": 0.003529,
+          "ci95_high": 0.004683,
+          "p_value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "low_review/d",
+      "outcome": "low_review",
+      "model": "d",
+      "model_label": "days-late bins + delivery_days (broken promise holding speed)",
+      "role": "secondary",
+      "sample_description": "headline orders with a review",
+      "formula": "low_review ~ late_1_2 + late_3_7 + late_8_14 + late_15p + delivery_days + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 94302,
+      "n_obs": 93776,
+      "singleton_rows_dropped": 526,
+      "clusters": 2396,
+      "weeks": 87,
+      "outcome_mean": 0.123358,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late_1_2",
+          "estimate": 0.137095,
+          "se": 0.012604,
+          "ci95_low": 0.11238,
+          "ci95_high": 0.161811,
+          "p_value": 0.0
+        },
+        {
+          "term": "late_3_7",
+          "estimate": 0.508701,
+          "se": 0.011331,
+          "ci95_low": 0.486482,
+          "ci95_high": 0.530921,
+          "p_value": 0.0
+        },
+        {
+          "term": "late_8_14",
+          "estimate": 0.652154,
+          "se": 0.013136,
+          "ci95_low": 0.626395,
+          "ci95_high": 0.677913,
+          "p_value": 0.0
+        },
+        {
+          "term": "late_15p",
+          "estimate": 0.598511,
+          "se": 0.014827,
+          "ci95_low": 0.569435,
+          "ci95_high": 0.627587,
+          "p_value": 0.0
+        },
+        {
+          "term": "delivery_days",
+          "estimate": 0.001895,
+          "se": 0.000288,
+          "ci95_low": 0.001329,
+          "ci95_high": 0.00246,
+          "p_value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "low_review/e",
+      "outcome": "low_review",
+      "model": "e",
+      "model_label": "slowness: delivery-days bins, on-time orders",
+      "role": "secondary",
+      "sample_description": "headline orders with a review, on time only",
+      "formula": "low_review ~ dd_8_14 + dd_15_21 + dd_22p + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 87936,
+      "n_obs": 87421,
+      "singleton_rows_dropped": 515,
+      "clusters": 2355,
+      "weeks": 87,
+      "outcome_mean": 0.087222,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "dd_8_14",
+          "estimate": 0.014599,
+          "se": 0.002504,
+          "ci95_low": 0.009689,
+          "ci95_high": 0.019509,
+          "p_value": 0.0
+        },
+        {
+          "term": "dd_15_21",
+          "estimate": 0.035594,
+          "se": 0.003626,
+          "ci95_low": 0.028484,
+          "ci95_high": 0.042704,
+          "p_value": 0.0
+        },
+        {
+          "term": "dd_22p",
+          "estimate": 0.080972,
+          "se": 0.006091,
+          "ci95_low": 0.069027,
+          "ci95_high": 0.092918,
+          "p_value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "review_score/a",
+      "outcome": "review_score",
+      "model": "a",
+      "model_label": "binary late (total effect)",
+      "role": "secondary",
+      "sample_description": "headline orders with a review",
+      "formula": "review_score ~ late + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 94302,
+      "n_obs": 93776,
+      "singleton_rows_dropped": 526,
+      "clusters": 2396,
+      "weeks": 87,
+      "outcome_mean": 4.173264,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late",
+          "estimate": -1.933404,
+          "se": 0.025963,
+          "ci95_low": -1.984317,
+          "ci95_high": -1.882491,
+          "p_value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "review_score/b",
+      "outcome": "review_score",
+      "model": "b",
+      "model_label": "days-late bins (total effect)",
+      "role": "secondary",
+      "sample_description": "headline orders with a review",
+      "formula": "review_score ~ late_1_2 + late_3_7 + late_8_14 + late_15p + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 94302,
+      "n_obs": 93776,
+      "singleton_rows_dropped": 526,
+      "clusters": 2396,
+      "weeks": 87,
+      "outcome_mean": 4.173264,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late_1_2",
+          "estimate": -0.743567,
+          "se": 0.042103,
+          "ci95_low": -0.826129,
+          "ci95_high": -0.661006,
+          "p_value": 0.0
+        },
+        {
+          "term": "late_3_7",
+          "estimate": -1.997445,
+          "se": 0.037922,
+          "ci95_low": -2.071809,
+          "ci95_high": -1.923081,
+          "p_value": 0.0
+        },
+        {
+          "term": "late_8_14",
+          "estimate": -2.518684,
+          "se": 0.037702,
+          "ci95_low": -2.592617,
+          "ci95_high": -2.444752,
+          "p_value": 0.0
+        },
+        {
+          "term": "late_15p",
+          "estimate": -2.466503,
+          "se": 0.039026,
+          "ci95_low": -2.543031,
+          "ci95_high": -2.389975,
+          "p_value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "review_score/c",
+      "outcome": "review_score",
+      "model": "c",
+      "model_label": "binary late + delivery_days (broken promise holding speed)",
+      "role": "secondary",
+      "sample_description": "headline orders with a review",
+      "formula": "review_score ~ late + delivery_days + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 94302,
+      "n_obs": 93776,
+      "singleton_rows_dropped": 526,
+      "clusters": 2396,
+      "weeks": 87,
+      "outcome_mean": 4.173264,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late",
+          "estimate": -1.511581,
+          "se": 0.03225,
+          "ci95_low": -1.574821,
+          "ci95_high": -1.44834,
+          "p_value": 0.0
+        },
+        {
+          "term": "delivery_days",
+          "estimate": -0.02052,
+          "se": 0.001184,
+          "ci95_low": -0.022842,
+          "ci95_high": -0.018197,
+          "p_value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "review_score/d",
+      "outcome": "review_score",
+      "model": "d",
+      "model_label": "days-late bins + delivery_days (broken promise holding speed)",
+      "role": "secondary",
+      "sample_description": "headline orders with a review",
+      "formula": "review_score ~ late_1_2 + late_3_7 + late_8_14 + late_15p + delivery_days + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 94302,
+      "n_obs": 93776,
+      "singleton_rows_dropped": 526,
+      "clusters": 2396,
+      "weeks": 87,
+      "outcome_mean": 4.173264,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late_1_2",
+          "estimate": -0.57675,
+          "se": 0.043072,
+          "ci95_low": -0.661213,
+          "ci95_high": -0.492287,
+          "p_value": 0.0
+        },
+        {
+          "term": "late_3_7",
+          "estimate": -1.774534,
+          "se": 0.039597,
+          "ci95_low": -1.852181,
+          "ci95_high": -1.696886,
+          "p_value": 0.0
+        },
+        {
+          "term": "late_8_14",
+          "estimate": -2.203391,
+          "se": 0.045519,
+          "ci95_low": -2.292653,
+          "ci95_high": -2.11413,
+          "p_value": 0.0
+        },
+        {
+          "term": "late_15p",
+          "estimate": -1.86859,
+          "se": 0.050487,
+          "ci95_low": -1.967592,
+          "ci95_high": -1.769588,
+          "p_value": 0.0
+        },
+        {
+          "term": "delivery_days",
+          "estimate": -0.014937,
+          "se": 0.00119,
+          "ci95_low": -0.017271,
+          "ci95_high": -0.012603,
+          "p_value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "review_score/e",
+      "outcome": "review_score",
+      "model": "e",
+      "model_label": "slowness: delivery-days bins, on-time orders",
+      "role": "secondary",
+      "sample_description": "headline orders with a review, on time only",
+      "formula": "review_score ~ dd_8_14 + dd_15_21 + dd_22p + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 87936,
+      "n_obs": 87421,
+      "singleton_rows_dropped": 515,
+      "clusters": 2355,
+      "weeks": 87,
+      "outcome_mean": 4.310486,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "dd_8_14",
+          "estimate": -0.111021,
+          "se": 0.008906,
+          "ci95_low": -0.128485,
+          "ci95_high": -0.093556,
+          "p_value": 0.0
+        },
+        {
+          "term": "dd_15_21",
+          "estimate": -0.25523,
+          "se": 0.014129,
+          "ci95_low": -0.282937,
+          "ci95_high": -0.227522,
+          "p_value": 0.0
+        },
+        {
+          "term": "dd_22p",
+          "estimate": -0.519418,
+          "se": 0.022593,
+          "ci95_low": -0.563722,
+          "ci95_high": -0.475114,
+          "p_value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "repeat_90d/a",
+      "outcome": "repeat_90d",
+      "model": "a",
+      "model_label": "binary late (total effect)",
+      "role": "secondary",
+      "sample_description": "headline first orders eligible for 90 days",
+      "formula": "repeat_90d ~ late + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 72130,
+      "n_obs": 71692,
+      "singleton_rows_dropped": 438,
+      "clusters": 1905,
+      "weeks": 74,
+      "outcome_mean": 0.011466,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late",
+          "estimate": -0.002404,
+          "se": 0.001262,
+          "ci95_low": -0.004878,
+          "ci95_high": 7.1e-05,
+          "p_value": 0.056913
+        }
+      ]
+    },
+    {
+      "id": "repeat_90d/b",
+      "outcome": "repeat_90d",
+      "model": "b",
+      "model_label": "days-late bins (total effect)",
+      "role": "secondary",
+      "sample_description": "headline first orders eligible for 90 days",
+      "formula": "repeat_90d ~ late_1_2 + late_3_7 + late_8_14 + late_15p + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 72130,
+      "n_obs": 71692,
+      "singleton_rows_dropped": 438,
+      "clusters": 1905,
+      "weeks": 74,
+      "outcome_mean": 0.011466,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late_1_2",
+          "estimate": -0.001742,
+          "se": 0.003216,
+          "ci95_low": -0.008049,
+          "ci95_high": 0.004564,
+          "p_value": 0.588002
+        },
+        {
+          "term": "late_3_7",
+          "estimate": -0.003469,
+          "se": 0.001898,
+          "ci95_low": -0.007191,
+          "ci95_high": 0.000252,
+          "p_value": 0.067651
+        },
+        {
+          "term": "late_8_14",
+          "estimate": 0.00147,
+          "se": 0.003046,
+          "ci95_low": -0.004505,
+          "ci95_high": 0.007444,
+          "p_value": 0.629542
+        },
+        {
+          "term": "late_15p",
+          "estimate": -0.005338,
+          "se": 0.001989,
+          "ci95_low": -0.009238,
+          "ci95_high": -0.001438,
+          "p_value": 0.007331
+        }
+      ]
+    },
+    {
+      "id": "repeat_90d/c",
+      "outcome": "repeat_90d",
+      "model": "c",
+      "model_label": "binary late + delivery_days (broken promise holding speed)",
+      "role": "secondary",
+      "sample_description": "headline first orders eligible for 90 days",
+      "formula": "repeat_90d ~ late + delivery_days + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 72130,
+      "n_obs": 71692,
+      "singleton_rows_dropped": 438,
+      "clusters": 1905,
+      "weeks": 74,
+      "outcome_mean": 0.011466,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late",
+          "estimate": -0.00043,
+          "se": 0.001801,
+          "ci95_low": -0.003962,
+          "ci95_high": 0.003102,
+          "p_value": 0.811216
+        },
+        {
+          "term": "delivery_days",
+          "estimate": -9.2e-05,
+          "se": 5.2e-05,
+          "ci95_low": -0.000194,
+          "ci95_high": 1e-05,
+          "p_value": 0.077437
+        }
+      ]
+    },
+    {
+      "id": "repeat_90d/d",
+      "outcome": "repeat_90d",
+      "model": "d",
+      "model_label": "days-late bins + delivery_days (broken promise holding speed)",
+      "role": "secondary",
+      "sample_description": "headline first orders eligible for 90 days",
+      "formula": "repeat_90d ~ late_1_2 + late_3_7 + late_8_14 + late_15p + delivery_days + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 72130,
+      "n_obs": 71692,
+      "singleton_rows_dropped": 438,
+      "clusters": 1905,
+      "weeks": 74,
+      "outcome_mean": 0.011466,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late_1_2",
+          "estimate": -0.000694,
+          "se": 0.003352,
+          "ci95_low": -0.007268,
+          "ci95_high": 0.00588,
+          "p_value": 0.836043
+        },
+        {
+          "term": "late_3_7",
+          "estimate": -0.002099,
+          "se": 0.002144,
+          "ci95_low": -0.006304,
+          "ci95_high": 0.002106,
+          "p_value": 0.327643
+        },
+        {
+          "term": "late_8_14",
+          "estimate": 0.00335,
+          "se": 0.003269,
+          "ci95_low": -0.003061,
+          "ci95_high": 0.009762,
+          "p_value": 0.305562
+        },
+        {
+          "term": "late_15p",
+          "estimate": -0.001872,
+          "se": 0.002926,
+          "ci95_low": -0.007611,
+          "ci95_high": 0.003868,
+          "p_value": 0.522541
+        },
+        {
+          "term": "delivery_days",
+          "estimate": -8.8e-05,
+          "se": 5.7e-05,
+          "ci95_low": -0.000198,
+          "ci95_high": 2.3e-05,
+          "p_value": 0.121492
+        }
+      ]
+    },
+    {
+      "id": "repeat_90d/e",
+      "outcome": "repeat_90d",
+      "model": "e",
+      "model_label": "slowness: delivery-days bins, on-time orders",
+      "role": "secondary",
+      "sample_description": "headline first orders eligible for 90 days, on time only",
+      "formula": "repeat_90d ~ dd_8_14 + dd_15_21 + dd_22p + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 66888,
+      "n_obs": 66456,
+      "singleton_rows_dropped": 432,
+      "clusters": 1862,
+      "weeks": 74,
+      "outcome_mean": 0.011722,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "dd_8_14",
+          "estimate": -0.001559,
+          "se": 0.001177,
+          "ci95_low": -0.003867,
+          "ci95_high": 0.00075,
+          "p_value": 0.185588
+        },
+        {
+          "term": "dd_15_21",
+          "estimate": -0.002987,
+          "se": 0.001481,
+          "ci95_low": -0.005891,
+          "ci95_high": -8.3e-05,
+          "p_value": 0.043836
+        },
+        {
+          "term": "dd_22p",
+          "estimate": -0.000164,
+          "se": 0.001866,
+          "ci95_low": -0.003823,
+          "ci95_high": 0.003495,
+          "p_value": 0.929911
+        }
+      ]
+    },
+    {
+      "id": "repeat_180d/a",
+      "outcome": "repeat_180d",
+      "model": "a",
+      "model_label": "binary late (total effect)",
+      "role": "secondary",
+      "sample_description": "headline first orders eligible for 180 days",
+      "formula": "repeat_180d ~ late + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 51704,
+      "n_obs": 51362,
+      "singleton_rows_dropped": 342,
+      "clusters": 1531,
+      "weeks": 61,
+      "outcome_mean": 0.01836,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late",
+          "estimate": -0.002575,
+          "se": 0.002404,
+          "ci95_low": -0.007291,
+          "ci95_high": 0.002141,
+          "p_value": 0.284324
+        }
+      ]
+    },
+    {
+      "id": "repeat_180d/b",
+      "outcome": "repeat_180d",
+      "model": "b",
+      "model_label": "days-late bins (total effect)",
+      "role": "secondary",
+      "sample_description": "headline first orders eligible for 180 days",
+      "formula": "repeat_180d ~ late_1_2 + late_3_7 + late_8_14 + late_15p + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 51704,
+      "n_obs": 51362,
+      "singleton_rows_dropped": 342,
+      "clusters": 1531,
+      "weeks": 61,
+      "outcome_mean": 0.01836,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late_1_2",
+          "estimate": -7e-05,
+          "se": 0.005713,
+          "ci95_low": -0.011276,
+          "ci95_high": 0.011136,
+          "p_value": 0.990222
+        },
+        {
+          "term": "late_3_7",
+          "estimate": -0.002088,
+          "se": 0.00371,
+          "ci95_low": -0.009365,
+          "ci95_high": 0.005189,
+          "p_value": 0.573721
+        },
+        {
+          "term": "late_8_14",
+          "estimate": -0.002534,
+          "se": 0.005063,
+          "ci95_low": -0.012465,
+          "ci95_high": 0.007398,
+          "p_value": 0.616876
+        },
+        {
+          "term": "late_15p",
+          "estimate": -0.006337,
+          "se": 0.004198,
+          "ci95_low": -0.01457,
+          "ci95_high": 0.001897,
+          "p_value": 0.131359
+        }
+      ]
+    },
+    {
+      "id": "repeat_180d/c",
+      "outcome": "repeat_180d",
+      "model": "c",
+      "model_label": "binary late + delivery_days (broken promise holding speed)",
+      "role": "secondary",
+      "sample_description": "headline first orders eligible for 180 days",
+      "formula": "repeat_180d ~ late + delivery_days + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 51704,
+      "n_obs": 51362,
+      "singleton_rows_dropped": 342,
+      "clusters": 1531,
+      "weeks": 61,
+      "outcome_mean": 0.01836,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late",
+          "estimate": -5.5e-05,
+          "se": 0.00315,
+          "ci95_low": -0.006234,
+          "ci95_high": 0.006125,
+          "p_value": 0.98619
+        },
+        {
+          "term": "delivery_days",
+          "estimate": -0.000114,
+          "se": 7.9e-05,
+          "ci95_low": -0.00027,
+          "ci95_high": 4.2e-05,
+          "p_value": 0.151372
+        }
+      ]
+    },
+    {
+      "id": "repeat_180d/d",
+      "outcome": "repeat_180d",
+      "model": "d",
+      "model_label": "days-late bins + delivery_days (broken promise holding speed)",
+      "role": "secondary",
+      "sample_description": "headline first orders eligible for 180 days",
+      "formula": "repeat_180d ~ late_1_2 + late_3_7 + late_8_14 + late_15p + delivery_days + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 51704,
+      "n_obs": 51362,
+      "singleton_rows_dropped": 342,
+      "clusters": 1531,
+      "weeks": 61,
+      "outcome_mean": 0.01836,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late_1_2",
+          "estimate": 0.001177,
+          "se": 0.005893,
+          "ci95_low": -0.010383,
+          "ci95_high": 0.012737,
+          "p_value": 0.84177
+        },
+        {
+          "term": "late_3_7",
+          "estimate": -0.000462,
+          "se": 0.004017,
+          "ci95_low": -0.008341,
+          "ci95_high": 0.007418,
+          "p_value": 0.908516
+        },
+        {
+          "term": "late_8_14",
+          "estimate": -0.000321,
+          "se": 0.005237,
+          "ci95_low": -0.010593,
+          "ci95_high": 0.009951,
+          "p_value": 0.951122
+        },
+        {
+          "term": "late_15p",
+          "estimate": -0.002151,
+          "se": 0.005736,
+          "ci95_low": -0.013402,
+          "ci95_high": 0.009101,
+          "p_value": 0.707762
+        },
+        {
+          "term": "delivery_days",
+          "estimate": -9.9e-05,
+          "se": 8.6e-05,
+          "ci95_low": -0.000268,
+          "ci95_high": 7.1e-05,
+          "p_value": 0.254324
+        }
+      ]
+    },
+    {
+      "id": "repeat_180d/e",
+      "outcome": "repeat_180d",
+      "model": "e",
+      "model_label": "slowness: delivery-days bins, on-time orders",
+      "role": "secondary",
+      "sample_description": "headline first orders eligible for 180 days, on time only",
+      "formula": "repeat_180d ~ dd_8_14 + dd_15_21 + dd_22p + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 49046,
+      "n_obs": 48712,
+      "singleton_rows_dropped": 334,
+      "clusters": 1500,
+      "weeks": 61,
+      "outcome_mean": 0.01864,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "dd_8_14",
+          "estimate": -0.001592,
+          "se": 0.001712,
+          "ci95_low": -0.00495,
+          "ci95_high": 0.001766,
+          "p_value": 0.352569
+        },
+        {
+          "term": "dd_15_21",
+          "estimate": -0.001789,
+          "se": 0.002332,
+          "ci95_low": -0.006363,
+          "ci95_high": 0.002784,
+          "p_value": 0.443002
+        },
+        {
+          "term": "dd_22p",
+          "estimate": -0.000253,
+          "se": 0.002989,
+          "ci95_low": -0.006115,
+          "ci95_high": 0.00561,
+          "p_value": 0.932609
+        }
+      ]
+    },
+    {
+      "id": "star_1/a",
+      "outcome": "star_1",
+      "model": "a",
+      "model_label": "binary late (total effect)",
+      "role": "secondary (ADR-0004 star-distribution check)",
+      "sample_description": "headline orders with a review",
+      "formula": "star_1 ~ late + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 94302,
+      "n_obs": 93776,
+      "singleton_rows_dropped": 526,
+      "clusters": 2396,
+      "weeks": 87,
+      "outcome_mean": 0.093937,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late",
+          "estimate": 0.457117,
+          "se": 0.007082,
+          "ci95_low": 0.443228,
+          "ci95_high": 0.471005,
+          "p_value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "star_2/a",
+      "outcome": "star_2",
+      "model": "a",
+      "model_label": "binary late (total effect)",
+      "role": "secondary (ADR-0004 star-distribution check)",
+      "sample_description": "headline orders with a review",
+      "formula": "star_2 ~ late + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 94302,
+      "n_obs": 93776,
+      "singleton_rows_dropped": 526,
+      "clusters": 2396,
+      "weeks": 87,
+      "outcome_mean": 0.029421,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late",
+          "estimate": 0.059139,
+          "se": 0.003863,
+          "ci95_low": 0.051565,
+          "ci95_high": 0.066714,
+          "p_value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "star_3/a",
+      "outcome": "star_3",
+      "model": "a",
+      "model_label": "binary late (total effect)",
+      "role": "secondary (ADR-0004 star-distribution check)",
+      "sample_description": "headline orders with a review",
+      "formula": "star_3 ~ late + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 94302,
+      "n_obs": 93776,
+      "singleton_rows_dropped": 526,
+      "clusters": 2396,
+      "weeks": 87,
+      "outcome_mean": 0.082036,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late",
+          "estimate": 0.018282,
+          "se": 0.004787,
+          "ci95_low": 0.008895,
+          "ci95_high": 0.027669,
+          "p_value": 0.000137
+        }
+      ]
+    },
+    {
+      "id": "star_4/a",
+      "outcome": "star_4",
+      "model": "a",
+      "model_label": "binary late (total effect)",
+      "role": "secondary (ADR-0004 star-distribution check)",
+      "sample_description": "headline orders with a review",
+      "formula": "star_4 ~ late + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 94302,
+      "n_obs": 93776,
+      "singleton_rows_dropped": 526,
+      "clusters": 2396,
+      "weeks": 87,
+      "outcome_mean": 0.198654,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late",
+          "estimate": -0.109045,
+          "se": 0.004473,
+          "ci95_low": -0.117815,
+          "ci95_high": -0.100274,
+          "p_value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "star_5/a",
+      "outcome": "star_5",
+      "model": "a",
+      "model_label": "binary late (total effect)",
+      "role": "secondary (ADR-0004 star-distribution check)",
+      "sample_description": "headline orders with a review",
+      "formula": "star_5 ~ late + C(main_category) + C(customer_state) + log_price + log_freight + n_items + distance_km + distance_missing + promised_days | seller_id + purchase_week",
+      "n_sample": 94302,
+      "n_obs": 93776,
+      "singleton_rows_dropped": 526,
+      "clusters": 2396,
+      "weeks": 87,
+      "outcome_mean": 0.595952,
+      "collinear_controls_dropped": [],
+      "estimates": [
+        {
+          "term": "late",
+          "estimate": -0.425493,
+          "se": 0.007721,
+          "ci95_low": -0.440634,
+          "ci95_high": -0.410353,
+          "p_value": 0.0
+        }
+      ]
+    }
+  ],
+  "repeat_reading": [
+    {
+      "outcome": "repeat_90d",
+      "estimate": -0.002404,
+      "ci95_low": -0.004878,
+      "ci95_high": 7.1e-05,
+      "phase1_mde": 0.004286,
+      "reading": "upper bound (CI includes 0)"
+    },
+    {
+      "outcome": "repeat_180d",
+      "estimate": -0.002575,
+      "ci95_low": -0.007291,
+      "ci95_high": 0.002141,
+      "phase1_mde": 0.007497,
+      "reading": "upper bound (CI includes 0)"
+    }
+  ]
+}

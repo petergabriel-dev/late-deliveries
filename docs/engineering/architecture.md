@@ -31,7 +31,7 @@ orders.parquet + fe.json + assumptions.toml
 src/late_delivery/money.py                    (make money)       → outputs/money.{md,json}, fig_money_tornado.png
 ```
 
-`make all` runs check-data → build → test → diagnostics → naive, fe, rd, matching → ladder → robustness → money. Everything under `data/processed/` and `outputs/` is generated and gitignored. `assumptions.toml` (repo root, committed) holds every money input (ADR-0013 §8).
+`make all` runs check-data → build → test → diagnostics → naive, fe, rd, matching → ladder → robustness → money. Generated results in `outputs/` are committed and guarded by `make check-outputs` (PNG bytes excluded; ADR-0015); intermediate data in `data/processed/` stays gitignored and untracked. `assumptions.toml` (repo root, committed) holds every money input (ADR-0013 §8).
 
 ## Components
 

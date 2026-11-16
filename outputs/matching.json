@@ -1,0 +1,800 @@
+{
+  "label": "Propensity-score matching (ADR-0007 \u00a73, ADR-0008 \u00a74, ADR-0009); corroborating",
+  "spec": {
+    "outcome": "low_review",
+    "estimand": "ATT on matched late orders",
+    "sample": "headline orders with a review",
+    "propensity": "statsmodels Logit; control set minus seller, week dummies included",
+    "matching": "exact on purchase_week; 1:1 nearest neighbour on the logit score with replacement; ties to the lowest order_id",
+    "estimator": "weighted OLS low_review ~ late (pyfixest, aweights = times matched)",
+    "vcov": "CRV1 clustered by seller_id",
+    "se_note": "SEs ignore the uncertainty from estimating the propensity score (ADR-0008 \u00a74)."
+  },
+  "att": {
+    "estimate": 0.529106,
+    "se": 0.008002,
+    "ci95_low": 0.513411,
+    "ci95_high": 0.544802,
+    "p_value": 0.0,
+    "clusters": 1598,
+    "mean_late": 0.624292,
+    "mean_control_weighted": 0.095186
+  },
+  "sample": {
+    "orders_before_separation_drop": 94302,
+    "orders_dropped_separation": 211,
+    "late_orders_dropped_separation": 0,
+    "separated_levels": [
+      {
+        "variable": "main_category",
+        "level": "cds_dvds_musicals",
+        "orders": 12,
+        "late_orders": 0
+      },
+      {
+        "variable": "main_category",
+        "level": "diapers_and_hygiene",
+        "orders": 24,
+        "late_orders": 0
+      },
+      {
+        "variable": "main_category",
+        "level": "fashion_childrens_clothes",
+        "orders": 7,
+        "late_orders": 0
+      },
+      {
+        "variable": "main_category",
+        "level": "la_cuisine",
+        "orders": 11,
+        "late_orders": 0
+      },
+      {
+        "variable": "main_category",
+        "level": "party_supplies",
+        "orders": 37,
+        "late_orders": 0
+      },
+      {
+        "variable": "main_category",
+        "level": "pc_gamer",
+        "orders": 6,
+        "late_orders": 0
+      },
+      {
+        "variable": "main_category",
+        "level": "security_and_services",
+        "orders": 2,
+        "late_orders": 0
+      },
+      {
+        "variable": "purchase_week",
+        "level": "2018-08-27",
+        "orders": 113,
+        "late_orders": 0
+      }
+    ],
+    "orders": 94091,
+    "late_orders": 6366,
+    "matched_late": 6356,
+    "unmatched_late": 10,
+    "distinct_controls_used": 5444,
+    "max_control_weight": 8,
+    "weeks_with_matches": 86
+  },
+  "propensity": {
+    "columns": 184,
+    "converged": true,
+    "iterations": 10,
+    "score_sd": 1.149614,
+    "caliper_sd": 0.2,
+    "caliper": 0.229923
+  },
+  "balance": {
+    "max_abs_smd_after": 0.051101,
+    "covariates_above_0.1_after": 0,
+    "covariates": 100,
+    "table": [
+      {
+        "covariate": "customer_state_BA",
+        "mean_late": 0.060258,
+        "mean_control_matched": 0.070957,
+        "smd_before": 0.135281,
+        "smd_after": -0.051101
+      },
+      {
+        "covariate": "main_category_construction_tools_construction",
+        "mean_late": 0.008181,
+        "mean_control_matched": 0.011013,
+        "smd_before": 0.007969,
+        "smd_after": -0.032155
+      },
+      {
+        "covariate": "main_category_fashion_underwear_beach",
+        "mean_late": 0.001731,
+        "mean_control_matched": 0.000629,
+        "smd_before": 0.013895,
+        "smd_after": 0.028819
+      },
+      {
+        "covariate": "main_category_audio",
+        "mean_late": 0.005979,
+        "mean_control_matched": 0.007867,
+        "smd_before": 0.041596,
+        "smd_after": -0.027208
+      },
+      {
+        "covariate": "customer_state_RS",
+        "mean_late": 0.050503,
+        "mean_control_matched": 0.044525,
+        "smd_before": -0.023722,
+        "smd_after": 0.026667
+      },
+      {
+        "covariate": "main_category_furniture_mattress_and_upholstery",
+        "mean_late": 0.000787,
+        "mean_control_matched": 0.000157,
+        "smd_before": 0.017545,
+        "smd_after": 0.02625
+      },
+      {
+        "covariate": "main_category_industry_commerce_and_business",
+        "mean_late": 0.00236,
+        "mean_control_matched": 0.001101,
+        "smd_before": 0.000166,
+        "smd_after": 0.025981
+      },
+      {
+        "covariate": "main_category_telephony",
+        "mean_late": 0.045154,
+        "mean_control_matched": 0.039962,
+        "smd_before": 0.012924,
+        "smd_after": 0.02538
+      },
+      {
+        "covariate": "log_price",
+        "mean_late": 4.534063,
+        "mean_control_matched": 4.511243,
+        "smd_before": 0.099164,
+        "smd_after": 0.024762
+      },
+      {
+        "covariate": "main_category_computers_accessories",
+        "mean_late": 0.063877,
+        "mean_control_matched": 0.069698,
+        "smd_before": -0.016876,
+        "smd_after": -0.023468
+      },
+      {
+        "covariate": "promised_days",
+        "mean_late": 23.251573,
+        "mean_control_matched": 23.062303,
+        "smd_before": -0.135118,
+        "smd_after": 0.02331
+      },
+      {
+        "covariate": "main_category_costruction_tools_garden",
+        "mean_late": 0.001573,
+        "mean_control_matched": 0.002517,
+        "smd_before": -0.008252,
+        "smd_after": -0.02263
+      },
+      {
+        "covariate": "main_category_christmas_supplies",
+        "mean_late": 0.001416,
+        "mean_control_matched": 0.000629,
+        "smd_before": 0.003739,
+        "smd_after": 0.021462
+      },
+      {
+        "covariate": "log_freight",
+        "mean_late": 3.078575,
+        "mean_control_matched": 3.066858,
+        "smd_before": 0.201206,
+        "smd_after": 0.021372
+      },
+      {
+        "covariate": "main_category_fashion_shoes",
+        "mean_late": 0.001573,
+        "mean_control_matched": 0.002517,
+        "smd_before": -0.020322,
+        "smd_after": -0.020984
+      },
+      {
+        "covariate": "main_category_food",
+        "mean_late": 0.00472,
+        "mean_control_matched": 0.003304,
+        "smd_before": 0.003439,
+        "smd_after": 0.020933
+      },
+      {
+        "covariate": "main_category_kitchen_dining_laundry_garden_furniture",
+        "mean_late": 0.001731,
+        "mean_control_matched": 0.002675,
+        "smd_before": -0.017414,
+        "smd_after": -0.020479
+      },
+      {
+        "covariate": "main_category_construction_tools_lights",
+        "mean_late": 0.00236,
+        "mean_control_matched": 0.003304,
+        "smd_before": -0.000304,
+        "smd_after": -0.019439
+      },
+      {
+        "covariate": "customer_state_AC",
+        "mean_late": 0.000472,
+        "mean_control_matched": 0.0,
+        "smd_before": -0.015657,
+        "smd_after": 0.01818
+      },
+      {
+        "covariate": "customer_state_RJ",
+        "mean_late": 0.228288,
+        "mean_control_matched": 0.221523,
+        "smd_before": 0.287205,
+        "smd_after": 0.01802
+      },
+      {
+        "covariate": "main_category_small_appliances_home_oven_and_coffee",
+        "mean_late": 0.000629,
+        "mean_control_matched": 0.000157,
+        "smd_before": -0.005544,
+        "smd_after": 0.017823
+      },
+      {
+        "covariate": "main_category_cool_stuff",
+        "mean_late": 0.032096,
+        "mean_control_matched": 0.035242,
+        "smd_before": -0.027573,
+        "smd_after": -0.017227
+      },
+      {
+        "covariate": "customer_state_PA",
+        "mean_late": 0.015576,
+        "mean_control_matched": 0.013688,
+        "smd_before": 0.055856,
+        "smd_after": 0.017029
+      },
+      {
+        "covariate": "customer_state_GO",
+        "mean_late": 0.019509,
+        "mean_control_matched": 0.017149,
+        "smd_before": -0.006222,
+        "smd_after": 0.016892
+      },
+      {
+        "covariate": "main_category_market_place",
+        "mean_late": 0.001731,
+        "mean_control_matched": 0.002517,
+        "smd_before": -0.022847,
+        "smd_after": -0.016524
+      },
+      {
+        "covariate": "main_category_fashion_male_clothing",
+        "mean_late": 0.000629,
+        "mean_control_matched": 0.001101,
+        "smd_before": -0.016884,
+        "smd_after": -0.015932
+      },
+      {
+        "covariate": "main_category_books_general_interest",
+        "mean_late": 0.004877,
+        "mean_control_matched": 0.005979,
+        "smd_before": -0.004482,
+        "smd_after": -0.01557
+      },
+      {
+        "covariate": "main_category_bed_bath_table",
+        "mean_late": 0.103839,
+        "mean_control_matched": 0.099434,
+        "smd_before": 0.037369,
+        "smd_after": 0.014801
+      },
+      {
+        "covariate": "main_category_air_conditioning",
+        "mean_late": 0.001416,
+        "mean_control_matched": 0.000787,
+        "smd_before": -0.026272,
+        "smd_after": 0.014085
+      },
+      {
+        "covariate": "customer_state_SP",
+        "mean_late": 0.279736,
+        "mean_control_matched": 0.286344,
+        "smd_before": -0.317378,
+        "smd_after": -0.013985
+      },
+      {
+        "covariate": "main_category_construction_tools_safety",
+        "mean_late": 0.000629,
+        "mean_control_matched": 0.001101,
+        "smd_before": -0.031138,
+        "smd_after": -0.013881
+      },
+      {
+        "covariate": "customer_state_MT",
+        "mean_late": 0.007867,
+        "mean_control_matched": 0.006608,
+        "smd_before": -0.015222,
+        "smd_after": 0.013666
+      },
+      {
+        "covariate": "customer_state_SC",
+        "mean_late": 0.044682,
+        "mean_control_matched": 0.042008,
+        "smd_before": 0.042463,
+        "smd_after": 0.013582
+      },
+      {
+        "covariate": "main_category_portateis_cozinha_e_preparadores_de_alimentos",
+        "mean_late": 0.000157,
+        "mean_control_matched": 0.0,
+        "smd_before": 0.002667,
+        "smd_after": 0.013239
+      },
+      {
+        "covariate": "main_category_dvds_blu_ray",
+        "mean_late": 0.000629,
+        "mean_control_matched": 0.000944,
+        "smd_before": 0.002385,
+        "smd_after": -0.012858
+      },
+      {
+        "covariate": "main_category_pet_shop",
+        "mean_late": 0.013059,
+        "mean_control_matched": 0.011485,
+        "smd_before": -0.038354,
+        "smd_after": 0.012779
+      },
+      {
+        "covariate": "main_category_cine_photo",
+        "mean_late": 0.000629,
+        "mean_control_matched": 0.000315,
+        "smd_before": -0.000848,
+        "smd_after": 0.012451
+      },
+      {
+        "covariate": "main_category_drinks",
+        "mean_late": 0.00236,
+        "mean_control_matched": 0.001731,
+        "smd_before": -0.012833,
+        "smd_after": 0.012153
+      },
+      {
+        "covariate": "main_category_luggage_accessories",
+        "mean_late": 0.006608,
+        "mean_control_matched": 0.007709,
+        "smd_before": -0.046405,
+        "smd_after": -0.011822
+      },
+      {
+        "covariate": "main_category_musical_instruments",
+        "mean_late": 0.007237,
+        "mean_control_matched": 0.006293,
+        "smd_before": 0.011969,
+        "smd_after": 0.01154
+      },
+      {
+        "covariate": "main_category_arts_and_craftmanship",
+        "mean_late": 0.000157,
+        "mean_control_matched": 0.0,
+        "smd_before": -0.005846,
+        "smd_after": 0.011175
+      },
+      {
+        "covariate": "customer_state_PI",
+        "mean_late": 0.010227,
+        "mean_control_matched": 0.011171,
+        "smd_before": 0.065715,
+        "smd_after": -0.011022
+      },
+      {
+        "covariate": "customer_state_RO",
+        "mean_late": 0.001101,
+        "mean_control_matched": 0.001573,
+        "smd_before": -0.035747,
+        "smd_after": -0.01092
+      },
+      {
+        "covariate": "main_category_fashion_sport",
+        "mean_late": 0.000157,
+        "mean_control_matched": 0.0,
+        "smd_before": -0.00794,
+        "smd_after": 0.010723
+      },
+      {
+        "covariate": "main_category_stationery",
+        "mean_late": 0.02297,
+        "mean_control_matched": 0.024544,
+        "smd_before": -0.003866,
+        "smd_after": -0.010445
+      },
+      {
+        "covariate": "main_category_furniture_bedroom",
+        "mean_late": 0.000944,
+        "mean_control_matched": 0.000629,
+        "smd_before": 0.000628,
+        "smd_after": 0.010306
+      },
+      {
+        "covariate": "main_category_baby",
+        "mean_late": 0.034141,
+        "mean_control_matched": 0.03241,
+        "smd_before": 0.035366,
+        "smd_after": 0.00996
+      },
+      {
+        "covariate": "main_category_home_appliances_2",
+        "mean_late": 0.002203,
+        "mean_control_matched": 0.001731,
+        "smd_before": -0.004299,
+        "smd_after": 0.009848
+      },
+      {
+        "covariate": "customer_state_PB",
+        "mean_late": 0.008181,
+        "mean_control_matched": 0.007395,
+        "smd_before": 0.036771,
+        "smd_after": 0.009664
+      },
+      {
+        "covariate": "main_category_unknown",
+        "mean_late": 0.015104,
+        "mean_control_matched": 0.014003,
+        "smd_before": 0.00836,
+        "smd_after": 0.009188
+      },
+      {
+        "covariate": "main_category_books_technical",
+        "mean_late": 0.003304,
+        "mean_control_matched": 0.003776,
+        "smd_before": 0.012238,
+        "smd_after": -0.008679
+      },
+      {
+        "covariate": "customer_state_SE",
+        "mean_late": 0.007867,
+        "mean_control_matched": 0.007237,
+        "smd_before": 0.063312,
+        "smd_after": 0.008504
+      },
+      {
+        "covariate": "main_category_fashion_bags_accessories",
+        "mean_late": 0.015733,
+        "mean_control_matched": 0.014632,
+        "smd_before": -0.024475,
+        "smd_after": 0.008446
+      },
+      {
+        "covariate": "main_category_music",
+        "mean_late": 0.000315,
+        "mean_control_matched": 0.000157,
+        "smd_before": -0.003919,
+        "smd_after": 0.0084
+      },
+      {
+        "covariate": "main_category_books_imported",
+        "mean_late": 0.000157,
+        "mean_control_matched": 0.000315,
+        "smd_before": -0.020792,
+        "smd_after": -0.008386
+      },
+      {
+        "covariate": "customer_state_MS",
+        "mean_late": 0.010699,
+        "mean_control_matched": 0.009912,
+        "smd_before": 0.038007,
+        "smd_after": 0.008378
+      },
+      {
+        "covariate": "customer_state_RN",
+        "mean_late": 0.006765,
+        "mean_control_matched": 0.007395,
+        "smd_before": 0.025968,
+        "smd_after": -0.008308
+      },
+      {
+        "covariate": "main_category_agro_industry_and_commerce",
+        "mean_late": 0.001101,
+        "mean_control_matched": 0.000787,
+        "smd_before": -0.021527,
+        "smd_after": 0.008081
+      },
+      {
+        "covariate": "customer_state_TO",
+        "mean_late": 0.004248,
+        "mean_control_matched": 0.00472,
+        "smd_before": 0.025748,
+        "smd_after": -0.008012
+      },
+      {
+        "covariate": "main_category_office_furniture",
+        "mean_late": 0.015576,
+        "mean_control_matched": 0.01652,
+        "smd_before": 0.023061,
+        "smd_after": -0.007982
+      },
+      {
+        "covariate": "customer_state_ES",
+        "mean_late": 0.032253,
+        "mean_control_matched": 0.033512,
+        "smd_before": 0.078306,
+        "smd_after": -0.007918
+      },
+      {
+        "covariate": "customer_state_PE",
+        "mean_late": 0.023442,
+        "mean_control_matched": 0.022341,
+        "smd_before": 0.052282,
+        "smd_after": 0.007914
+      },
+      {
+        "covariate": "n_items",
+        "mean_late": 1.10494,
+        "mean_control_matched": 1.108874,
+        "smd_before": -0.034007,
+        "smd_after": -0.007781
+      },
+      {
+        "covariate": "main_category_food_drink",
+        "mean_late": 0.001259,
+        "mean_control_matched": 0.001573,
+        "smd_before": -0.026643,
+        "smd_after": -0.007372
+      },
+      {
+        "covariate": "customer_state_PR",
+        "mean_late": 0.030522,
+        "mean_control_matched": 0.031938,
+        "smd_before": -0.11124,
+        "smd_after": -0.007106
+      },
+      {
+        "covariate": "main_category_home_confort",
+        "mean_late": 0.005349,
+        "mean_control_matched": 0.004877,
+        "smd_before": 0.027239,
+        "smd_after": 0.006992
+      },
+      {
+        "covariate": "customer_state_AL",
+        "mean_late": 0.012429,
+        "mean_control_matched": 0.013059,
+        "smd_before": 0.103897,
+        "smd_after": -0.006987
+      },
+      {
+        "covariate": "main_category_home_construction",
+        "mean_late": 0.004563,
+        "mean_control_matched": 0.005035,
+        "smd_before": -0.004229,
+        "smd_after": -0.006901
+      },
+      {
+        "covariate": "customer_state_AP",
+        "mean_late": 0.000315,
+        "mean_control_matched": 0.000157,
+        "smd_before": -0.018188,
+        "smd_after": 0.006889
+      },
+      {
+        "covariate": "main_category_toys",
+        "mean_late": 0.036501,
+        "mean_control_matched": 0.035242,
+        "smd_before": -0.015749,
+        "smd_after": 0.006587
+      },
+      {
+        "covariate": "distance_km",
+        "mean_late": 762.023762,
+        "mean_control_matched": 757.850231,
+        "smd_before": 0.274686,
+        "smd_after": 0.006563
+      },
+      {
+        "covariate": "customer_state_RR",
+        "mean_late": 0.000787,
+        "mean_control_matched": 0.000944,
+        "smd_before": 0.015885,
+        "smd_after": -0.006467
+      },
+      {
+        "covariate": "main_category_consoles_games",
+        "mean_late": 0.009283,
+        "mean_control_matched": 0.009912,
+        "smd_before": -0.013333,
+        "smd_after": -0.006347
+      },
+      {
+        "covariate": "main_category_auto",
+        "mean_late": 0.042794,
+        "mean_control_matched": 0.044053,
+        "smd_before": 0.01708,
+        "smd_after": -0.006345
+      },
+      {
+        "covariate": "main_category_sports_leisure",
+        "mean_late": 0.076463,
+        "mean_control_matched": 0.078037,
+        "smd_before": -0.00661,
+        "smd_after": -0.005893
+      },
+      {
+        "covariate": "main_category_furniture_decor",
+        "mean_late": 0.068439,
+        "mean_control_matched": 0.067023,
+        "smd_before": 0.023082,
+        "smd_after": 0.005712
+      },
+      {
+        "covariate": "main_category_watches_gifts",
+        "mean_late": 0.061989,
+        "mean_control_matched": 0.06073,
+        "smd_before": 0.021883,
+        "smd_after": 0.005329
+      },
+      {
+        "covariate": "main_category_costruction_tools_tools",
+        "mean_late": 0.000787,
+        "mean_control_matched": 0.000944,
+        "smd_before": -0.00764,
+        "smd_after": -0.005247
+      },
+      {
+        "covariate": "main_category_garden_tools",
+        "mean_late": 0.03477,
+        "mean_control_matched": 0.033826,
+        "smd_before": -0.005292,
+        "smd_after": 0.005122
+      },
+      {
+        "covariate": "customer_state_MG",
+        "mean_late": 0.079138,
+        "mean_control_matched": 0.080554,
+        "smd_before": -0.139049,
+        "smd_after": -0.004735
+      },
+      {
+        "covariate": "main_category_signaling_and_security",
+        "mean_late": 0.000787,
+        "mean_control_matched": 0.000944,
+        "smd_before": -0.020698,
+        "smd_after": -0.004676
+      },
+      {
+        "covariate": "main_category_health_beauty",
+        "mean_late": 0.098962,
+        "mean_control_matched": 0.10022,
+        "smd_before": 0.033694,
+        "smd_after": -0.004309
+      },
+      {
+        "covariate": "main_category_small_appliances",
+        "mean_late": 0.004405,
+        "mean_control_matched": 0.00472,
+        "smd_before": -0.02866,
+        "smd_after": -0.004273
+      },
+      {
+        "covariate": "distance_missing",
+        "mean_late": 0.00708,
+        "mean_control_matched": 0.007395,
+        "smd_before": 0.028743,
+        "smd_after": -0.004087
+      },
+      {
+        "covariate": "main_category_fixed_telephony",
+        "mean_late": 0.001416,
+        "mean_control_matched": 0.001259,
+        "smd_before": -0.018515,
+        "smd_after": 0.003705
+      },
+      {
+        "covariate": "main_category_art",
+        "mean_late": 0.001888,
+        "mean_control_matched": 0.001731,
+        "smd_before": -0.002241,
+        "smd_after": 0.003581
+      },
+      {
+        "covariate": "customer_state_CE",
+        "mean_late": 0.027376,
+        "mean_control_matched": 0.027848,
+        "smd_before": 0.107821,
+        "smd_after": -0.00339
+      },
+      {
+        "covariate": "customer_state_DF",
+        "mean_late": 0.018565,
+        "mean_control_matched": 0.018093,
+        "smd_before": -0.023811,
+        "smd_after": 0.003354
+      },
+      {
+        "covariate": "main_category_furniture_living_room",
+        "mean_late": 0.004563,
+        "mean_control_matched": 0.004405,
+        "smd_before": 0.005992,
+        "smd_after": 0.002388
+      },
+      {
+        "covariate": "main_category_housewares",
+        "mean_late": 0.046885,
+        "mean_control_matched": 0.046413,
+        "smd_before": -0.056673,
+        "smd_after": 0.002101
+      },
+      {
+        "covariate": "main_category_electronics",
+        "mean_late": 0.029736,
+        "mean_control_matched": 0.03005,
+        "smd_before": 0.022483,
+        "smd_after": -0.001913
+      },
+      {
+        "covariate": "customer_state_MA",
+        "mean_late": 0.018565,
+        "mean_control_matched": 0.018722,
+        "smd_before": 0.110898,
+        "smd_after": -0.001402
+      },
+      {
+        "covariate": "customer_state_AM",
+        "mean_late": 0.000629,
+        "mean_control_matched": 0.000629,
+        "smd_before": -0.029032,
+        "smd_after": 0.0
+      },
+      {
+        "covariate": "main_category_computers",
+        "mean_late": 0.001259,
+        "mean_control_matched": 0.001259,
+        "smd_before": -0.015772,
+        "smd_after": 0.0
+      },
+      {
+        "covariate": "main_category_fashio_female_clothing",
+        "mean_late": 0.000315,
+        "mean_control_matched": 0.000315,
+        "smd_before": -0.002747,
+        "smd_after": 0.0
+      },
+      {
+        "covariate": "main_category_flowers",
+        "mean_late": 0.000157,
+        "mean_control_matched": 0.000157,
+        "smd_before": -0.009252,
+        "smd_after": 0.0
+      },
+      {
+        "covariate": "main_category_home_appliances",
+        "mean_late": 0.005192,
+        "mean_control_matched": 0.005192,
+        "smd_before": -0.03596,
+        "smd_after": 0.0
+      },
+      {
+        "covariate": "main_category_home_comfort_2",
+        "mean_late": 0.000472,
+        "mean_control_matched": 0.000472,
+        "smd_before": 0.014469,
+        "smd_after": 0.0
+      },
+      {
+        "covariate": "main_category_perfumery",
+        "mean_late": 0.031466,
+        "mean_control_matched": 0.031466,
+        "smd_before": -0.003444,
+        "smd_after": 0.0
+      },
+      {
+        "covariate": "main_category_tablets_printing_image",
+        "mean_late": 0.000472,
+        "mean_control_matched": 0.000472,
+        "smd_before": -0.013755,
+        "smd_after": 0.0
+      }
+    ]
+  }
+}

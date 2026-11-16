@@ -1,0 +1,26 @@
+{
+  "total_orders": 99441,
+  "excluded": [
+    {
+      "reason": "not_delivered",
+      "orders": 2963
+    },
+    {
+      "reason": "missing_delivery_ts",
+      "orders": 8
+    },
+    {
+      "reason": "outside_window",
+      "orders": 267
+    },
+    {
+      "reason": "no_items",
+      "orders": 0
+    },
+    {
+      "reason": "multi_seller",
+      "orders": 1272
+    }
+  ],
+  "in_headline": 94931
+}

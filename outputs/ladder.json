@@ -1,0 +1,120 @@
+{
+  "label": "Method ladder, outcome low_review (ADR-0007 \u00a74, ADR-0008 \u00a75)",
+  "outcome": "low_review (share of 1-2 star reviews, 0-1 scale)",
+  "rows": [
+    {
+      "method": "Naive difference",
+      "role": "biased baseline",
+      "estimand": "all late vs all on-time orders",
+      "estimate": 0.536797,
+      "ci95_low": 0.524752,
+      "ci95_high": 0.548842,
+      "n": 94302,
+      "verdict": ""
+    },
+    {
+      "method": "FE regression",
+      "role": "headline (pre-registered)",
+      "estimand": "average effect over all late orders, seller + week FE",
+      "estimate": 0.516256,
+      "ci95_low": 0.502433,
+      "ci95_high": 0.530079,
+      "n": 93776,
+      "verdict": ""
+    },
+    {
+      "method": "Donut RD",
+      "role": "corroborating",
+      "estimand": "jump at the promised date, days -6..7, donut 0/+1",
+      "estimate": 0.117059,
+      "ci95_low": -0.109622,
+      "ci95_high": 0.133645,
+      "n": 15122,
+      "verdict": "diverges (below)"
+    },
+    {
+      "method": "Donut RD (h = 5.5)",
+      "role": "sensitivity",
+      "estimand": "jump at the promised date, days -4..5, donut 0/+1",
+      "estimate": 0.089042,
+      "ci95_low": -0.251756,
+      "ci95_high": 0.155078,
+      "n": 8467,
+      "verdict": ""
+    },
+    {
+      "method": "Donut RD (h = 10.5)",
+      "role": "sensitivity",
+      "estimand": "jump at the promised date, days -9..10, donut 0/+1",
+      "estimate": 0.166496,
+      "ci95_low": -0.063013,
+      "ci95_high": 0.102722,
+      "n": 29984,
+      "verdict": ""
+    },
+    {
+      "method": "Donut RD (no donut)",
+      "role": "sensitivity",
+      "estimand": "jump at the promised date, days -6..7",
+      "estimate": 0.045322,
+      "ci95_low": -0.053015,
+      "ci95_high": 0.030513,
+      "n": 17214,
+      "verdict": ""
+    },
+    {
+      "method": "Matching",
+      "role": "corroborating",
+      "estimand": "ATT on matched late orders, no seller FE",
+      "estimate": 0.529106,
+      "ci95_low": 0.513411,
+      "ci95_high": 0.544802,
+      "n": 6356,
+      "verdict": "converges"
+    }
+  ],
+  "reconciliation": {
+    "headline": {
+      "method": "FE regression",
+      "estimate": 0.516256,
+      "ci95_low": 0.502433,
+      "ci95_high": 0.530079
+    },
+    "verdicts": {
+      "Donut RD": "diverges (below)",
+      "Matching": "converges"
+    },
+    "headline_fragile": false,
+    "rule": "converges = point estimate inside the headline 95% CI; fragile = donut RD and matching both diverge in the same direction (ADR-0007 \u00a74)"
+  },
+  "flags": [
+    {
+      "flag": "balance",
+      "fired": false,
+      "rule": "any post-match abs(SMD) > 0.1",
+      "values": "max abs(SMD) = 0.0511",
+      "if_fired": "matching failed to balance; its estimate is not interpretable (ADR-0007)"
+    },
+    {
+      "flag": "bin order",
+      "fired": false,
+      "rule": "low_review model (b): 1-2 day bin estimate > 3-7 day bin estimate",
+      "values": "1-2: 0.1583; 3-7: 0.5370",
+      "if_fired": "the 'waiting adds harm' reading of the bins is wrong (ADR-0007)"
+    },
+    {
+      "flag": "repeat window",
+      "fired": false,
+      "rule": "model (a): repeat_90d and repeat_180d estimates have opposite signs",
+      "values": "90d: -0.0024; 180d: -0.0026",
+      "if_fired": "the repeat window drives the conclusion (ADR-0004)"
+    },
+    {
+      "flag": "star distribution",
+      "fired": false,
+      "rule": "low_review 95% CI includes 0 while the 5-star 95% CI excludes 0",
+      "values": "low_review CI [0.5024, 0.5301]; 5-star CI [-0.4406, -0.4104]",
+      "if_fired": "the primary metric misses the effect (ADR-0004)"
+    }
+  ]
+}
