@@ -75,6 +75,13 @@ def test_review_scores_in_range(raw, t):
     assert t["review_score"].dropna().between(1, 5).all()
 
 
+def test_review_counts_per_order(t):
+    # traps.md: 547 orders have more than one review and 768 have none (ADR-0011 §3, check 12).
+    assert int((t["n_reviews"] > 1).sum()) == 547
+    assert int((t["n_reviews"] == 0).sum()) == 768
+    assert (t["n_reviews"] == 0).equals(t["review_score"].isna())
+
+
 def test_headline_rows_follow_adr_0005(t):
     h = t[t["in_headline"]]
     assert (h["order_status"] == "delivered").all()

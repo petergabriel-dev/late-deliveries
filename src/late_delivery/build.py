@@ -169,6 +169,8 @@ def build_table(raw: dict[str, pd.DataFrame]) -> pd.DataFrame:
     # Calendar-date comparison: creation dates carry no time of day.
     before = (created.dt.normalize() < t["delivery_ts"].dt.normalize()).astype("boolean")
     t["review_created_before_delivery"] = before.mask(created.isna() | t["delivery_ts"].isna())
+    # Raw review rows per order; a review_id shared by several orders counts once for each (ADR-0011 §3, check 12).
+    t["n_reviews"] = t["order_id"].map(raw["reviews"].groupby("order_id").size()).fillna(0).astype(int)
 
     # Repeat outcomes (ADR-0004).
     t = t.join(first_order_repeat(t), on="order_id")

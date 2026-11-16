@@ -78,6 +78,12 @@ def test_shared_review_id_counts_for_each_order(t):
     assert t.loc["b1", "review_score"] == 2 and t.loc["b2", "review_score"] == 2
 
 
+def test_n_reviews_counts_raw_rows_per_order(t):
+    assert t.loc["a1", "n_reviews"] == 2  # both rows count, not only the kept one
+    assert t.loc["b1", "n_reviews"] == 1 and t.loc["b2", "n_reviews"] == 1  # shared review_id: once per order
+    assert t.loc["c1", "n_reviews"] == 0
+
+
 def test_same_session_order_not_a_repeat(t):
     assert t.loc["a1", "is_first_order"] and not t.loc["a2", "is_first_order"]
     assert t.loc["a1", "repeat_90d_eligible"] and not t.loc["a1", "repeat_90d"]
