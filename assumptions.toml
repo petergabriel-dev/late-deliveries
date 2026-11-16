@@ -1,0 +1,185 @@
+# Money inputs for Phase 4 (ADR-0006, ADR-0013). Read with stdlib tomllib by src/late_delivery/money.py.
+#
+# Rules (ADR-0013 §8, invariant 6):
+# - Assumed inputs: value, low, high, unit, tag = "assumed", and at least one [[...sources]] entry or
+#   illustrative = true (both allowed). low <= value <= high. For every assumed input the money figure
+#   rises with the value, so `low` is the low-cost end and `high` the high-cost end.
+# - Measured inputs: tag = "measured" and a `ref` to code output; no number is copied here.
+# - Every source was opened on the date given; quotes are verbatim.
+
+[meta]
+currency = "BRL"
+convert_to = "USD"
+sources_opened = "2026-11-16"
+
+# --- Assumed inputs (corner and tornado inputs) ---------------------------------------------------
+
+[inputs.epsilon]
+tag = "assumed"
+description = "Share of a seller's sales lost per one-star drop in its average rating"
+unit = "share of sales per star"
+value = 0.075
+low = 0.05
+high = 0.10
+derivation = "low = Luca's lower bound per star; high = Magnusson's half-star effect x 2 (linear); value = midpoint"
+setting_mismatch = "Both are regression-discontinuity estimates of a displayed rating crossing a rounding threshold: Wayfair product ratings (US) and Yelp restaurant ratings (Washington State). Here they are applied to small changes in an Olist seller's average rating; whether Olist's channels show buyers seller ratings is unverified."
+
+[[inputs.epsilon.sources]]
+citation = "Magnusson, E. (2022). Unboxing the Causal Effect of Ratings on Product Demand: Evidence from Wayfair.com. Journal of Industrial Economics 70(3), 525-564. doi:10.1111/joie.12302"
+url = "https://ideas.repec.org/a/bla/jindec/v70y2022i3p525-564.html"
+quote = "Using a regression discontinuity design, I estimate the causal effect of increasing product ratings by half a star on Wayfair.com to be a 5% increase in product demand."
+opened = "2026-11-16"
+
+[[inputs.epsilon.sources]]
+citation = "Luca, M. Reviews, Reputation, and Revenue: The Case of Yelp.com. Harvard Business School Working Paper 12-016 (2011-09, revised 2016-03)"
+url = "https://econpapers.repec.org/RePEc:hbs:wpaper:12-016"
+quote = "(1) a one-star increase in Yelp rating leads to a 5-9 percent increase in revenue"
+opened = "2026-11-16"
+
+[inputs.take_rate]
+tag = "assumed"
+description = "Platform commission on item price (GMV)"
+unit = "share of item price"
+value = 0.20
+low = 0.20
+high = 0.20
+note = "Olist's gross commission in 2017-2019. Neither source says whether the marketplace-channel fees Olist pays come out of it, so platform revenue may be overstated. Both sources give 20%, so there is no range."
+
+[[inputs.take_rate.sources]]
+citation = "Mercado&Consumo, 'Startup ajuda pequenos lojistas a vender produtos em marketplaces', 2017-06-26"
+url = "https://mercadoeconsumo.com.br/26/06/2017/noticias/startup-ajuda-pequenos-lojistas-a-vender-produtos-em-marketplaces/"
+quote = "A startup também fica com 20% do valor da venda dos produtos."
+opened = "2026-11-16"
+
+[[inputs.take_rate.sources]]
+citation = "Exame, 'Olist, marketplace de marketplaces, recebe R$ 190 mi do SoftBank', 2019-10-23"
+url = "https://exame.com/pme/olist-marketplace-de-marketplaces-recebe-r-190-mi-do-softbank/"
+quote = "Além de uma comissão de 20% sobre a venda, a startup cobra uma taxa de instalação de 450 reais"
+opened = "2026-11-16"
+
+[inputs.horizon_days]
+tag = "assumed"
+description = "Days after a bad review is posted during which it keeps costing the seller sales (H)"
+unit = "days"
+value = 90
+low = 30
+high = 180
+illustrative = true
+note = "Project owner's choice (discuss session 2026-11-16); no external source for how long a review keeps affecting sales."
+
+[inputs.contacts_per_late_order]
+tag = "assumed"
+description = "Extra support contacts caused by one late order (channel 3, add-on line only)"
+unit = "contacts per late order"
+value = 1.0
+low = 0.5
+high = 2.0
+illustrative = true
+note = "No source found (searched 2026-11-16). Round numbers chosen by the project owner."
+
+[inputs.cost_per_contact]
+tag = "assumed"
+description = "Cost of one customer-service contact (channel 3, add-on line only)"
+unit = "BRL per contact"
+value = 6.32
+low = 6.06
+high = 6.58
+illustrative = true
+derivation = "low and high = the range reported for the CIP study; value = midpoint"
+note = "Industry survey reported in trade press: illustrative under the ADR-0013 source bar. Channel coverage and methodology not stated."
+
+[[inputs.cost_per_contact.sources]]
+citation = "Consumidor Moderno, 'O SAC não é o mesmo de antes: como o setor irá se reinventar?', 2019-12-13, reporting the CIP study (2018 vs 2017 data)"
+url = "https://consumidormoderno.com.br/o-sac-nao-e-o-mesmo/"
+quote = "Apesar do investimento nos canais – todos têm custo médio de atendimento entre R$ 6,06 e R$ 6,58 – o engajamento é dificultado pela baixa resolutividade."
+opened = "2026-11-16"
+
+# --- Measured inputs (values read from code output at run time) ------------------------------------
+
+[inputs.repeat_effect_90d]
+tag = "measured"
+description = "Effect of a late delivery on 90-day repeat purchase (channel 1)"
+ref = "fe.json:repeat_90d/a"
+terms = ["late"]
+
+[inputs.repeat_effect_180d]
+tag = "measured"
+description = "Effect of a late delivery on 180-day repeat purchase (channel 1 tornado row)"
+ref = "fe.json:repeat_180d/a"
+terms = ["late"]
+
+[inputs.star_drop_bins]
+tag = "measured"
+description = "Effect of each days-late bin on the review score in stars (channel 2)"
+ref = "fe.json:review_score/b"
+terms = ["late_1_2", "late_3_7", "late_8_14", "late_15p"]
+
+[inputs.low_review_bins]
+tag = "measured"
+description = "Effect of each days-late bin on the 1-2 star share (lateness-mix decomposition)"
+ref = "fe.json:low_review/b"
+terms = ["late_1_2", "late_3_7", "late_8_14", "late_15p"]
+
+[inputs.broken_promise]
+tag = "measured"
+description = "Broken promise holding delivery time, and the effect of one extra delivery day (recommendation)"
+ref = "fe.json:low_review/c"
+terms = ["late", "delivery_days"]
+
+[inputs.repeat_gmv_90d]
+tag = "measured"
+description = "Mean item price of repeat orders within 90 days, among eligible first orders with a repeat (channel 1 value)"
+ref = "orders.parquet:repeat_90d_gmv"
+
+[inputs.repeat_gmv_180d]
+tag = "measured"
+description = "Mean item price of repeat orders within 180 days, among eligible first orders with a repeat (tornado row)"
+ref = "orders.parquet:repeat_180d_gmv"
+
+[inputs.seller_exposure]
+tag = "measured"
+description = "Per late order: sum over the seller's later orders in H of item price / the seller's visible review count (channel 2, ADR-0013 §3)"
+ref = "orders.parquet:seller_id,purchase_ts,order_status,price,review_answer_ts"
+
+[inputs.late_mix]
+tag = "measured"
+description = "Days-late bin mix of late headline orders with a review, and the share of late orders with a review (channel 2 weights)"
+ref = "orders.parquet:in_headline,late,days_late,review_score"
+
+# --- Exchange rate (conversion only; not a corner or tornado input) ---------------------------------
+
+[fx]
+tag = "assumed"
+description = "BRL per USD: simple mean of the 20 monthly averages below (headline window 2017-01 to 2018-08)"
+unit = "BRL per USD"
+series = "BCB SGS 3698: monthly average of the daily PTAX selling rate (SGS series 1)"
+api_url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.3698/dados?formato=json&dataInicial=01/01/2017&dataFinal=31/08/2018"
+metadata_url = "https://dadosabertos.bcb.gov.br/dataset/1-taxa-de-cambio---livre---dolar-americano-venda---diario"
+metadata_quotes = [
+    "A partir de março de 1992, essa taxa recebeu a denominação de taxa PTAX (fechamento).",
+    "Referem-se às médias das taxas diárias do período em referência (mês/ano), calculadas para compra e para venda, ponderadas pelos dias úteis.",
+]
+verification = "On 2026-11-16 each monthly value below equaled the mean of the daily SGS series 1 values for that month (4 decimals, all 20 months)."
+opened = "2026-11-16"
+
+[fx.monthly]
+"2017-01" = 3.1966
+"2017-02" = 3.1042
+"2017-03" = 3.1279
+"2017-04" = 3.1362
+"2017-05" = 3.2095
+"2017-06" = 3.2954
+"2017-07" = 3.2061
+"2017-08" = 3.1509
+"2017-09" = 3.1348
+"2017-10" = 3.1912
+"2017-11" = 3.2594
+"2017-12" = 3.2919
+"2018-01" = 3.2106
+"2018-02" = 3.2415
+"2018-03" = 3.2792
+"2018-04" = 3.4075
+"2018-05" = 3.6361
+"2018-06" = 3.7732
+"2018-07" = 3.8288
+"2018-08" = 3.9298

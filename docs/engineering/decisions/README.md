@@ -14,3 +14,4 @@
 | ADR-0010 | Active | Phase 2 reconciliation applied - headline stands, matching converges, donut RD diverges (JC 4) | Interpreting, reporting, or comparing the Phase 2 estimates, or before Phase 3 robustness work |
 | ADR-0011 | Active | Phase 3 implementation choices - fills ADR-0007 §7 gaps before any robustness estimate (JC 1, 2, 4) | Implementing, running, or interpreting any Phase 3 robustness check, flag, or sensitivity result |
 | ADR-0012 | Active | Phase 3 robustness reading - headline holds except on disruption periods; RD continuity fails (JC 2, 4) | Reporting or interpreting the Phase 3 robustness checks, or planning the Phase 4 money translation |
+| ADR-0013 | Active | Phase 4 implementation choices - money formulas, inputs and flag rules fixed before any money figure (JC 6) | Implementing, running, or interpreting the Phase 4 money translation, its inputs, its flags, or the disruption scenario |
