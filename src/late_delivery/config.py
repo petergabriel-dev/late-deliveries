@@ -72,3 +72,12 @@ ASSUMPTIONS_TOML = ROOT / "assumptions.toml"
 MONEY_MEASURED_SHARE_MIN = 0.10
 # ADR-0013 §3: order statuses left out of the seller's later orders exposed to a bad review.
 LATER_ORDER_EXCLUDED_STATUSES = ("canceled", "unavailable")
+
+# ADR-0015: reader-facing report templates and rendered documents.
+REPORT_DIR = ROOT / "docs" / "report"
+# ADR-0015: computed report values, not a hand-maintained analysis source.
+REPORT_JSON = OUTPUTS_DIR / "report.json"
+# ADR-0015: (template, target) pairs added with each communication deliverable.
+REPORT_TEMPLATES = ()
+# ADR-0015: Markdown memo word cap; changing it requires a new ADR.
+MEMO_MAX_WORDS = 450

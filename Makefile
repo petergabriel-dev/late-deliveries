@@ -1,7 +1,7 @@
-.PHONY: all check-outputs check-data build test diagnostics naive fe rd matching ladder robustness money
+.PHONY: all check-outputs check-data build test diagnostics naive fe rd matching ladder robustness money report
 
 # One command rebuilds every result from the committed raw CSVs.
-all: test diagnostics ladder robustness money
+all: test diagnostics ladder robustness money report
 
 # Rebuild, then reject stale or uncommitted outputs; PNG bytes are excluded (ADR-0015).
 check-outputs: all
@@ -53,3 +53,7 @@ robustness: fe rd
 # Phase 4: cost per late delivery, tornado, flags, disruption scenario (ADR-0013) -> outputs/money.{md,json}, fig_money_tornado.png
 money: fe
 	uv run python -m late_delivery.money
+
+# Phase 5: validate templates and render traceable prose (ADR-0015).
+report: diagnostics ladder robustness money
+	uv run python -m late_delivery.report
